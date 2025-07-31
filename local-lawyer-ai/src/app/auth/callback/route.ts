@@ -29,8 +29,13 @@ export async function GET(request: NextRequest) {
     
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
-    if (!error && data.user) {
-      // Create or update user in our users table
+    if (error) {
+      console.error('Error exchanging code for session:', error)
+      return NextResponse.redirect(new URL('/?error=auth_failed', request.url))
+    }
+
+    if (data.user) {
+      // Fallback user creation in case trigger doesn't work
       const { error: upsertError } = await supabase
         .from('users')
         .upsert({
@@ -38,15 +43,16 @@ export async function GET(request: NextRequest) {
           email: data.user.email!,
           full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
           avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
-          provider: data.user.app_metadata?.provider || 'email',
+          provider: data.user.app_metadata?.provider || 'google',
           provider_id: data.user.user_metadata?.provider_id || data.user.id,
-          updated_at: new Date().toISOString(),
         }, {
-          onConflict: 'id'
+          onConflict: 'id',
+          ignoreDuplicates: false
         })
 
       if (upsertError) {
-        console.error('Error upserting user:', upsertError)
+        console.error('Error creating user profile:', upsertError)
+        return NextResponse.redirect(new URL('/?error=profile_creation_failed', request.url))
       }
     }
   }
