@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
-import { getCurrentUser } from '../../../lib/auth'
+import { supabase } from '../../../../lib/supabase'
+import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import { Scale, MessageCircle, CreditCard, Settings, LogOut } from 'lucide-react'
 import Link from 'next/link'
-import { signOut } from '../../../lib/auth'
+import { signOut } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
 
 interface UserProfile {

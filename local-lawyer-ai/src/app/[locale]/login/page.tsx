@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { signInWithGoogle, signInWithFacebook } from '../../../lib/auth'
+import { signInWithGoogle, signInWithFacebook } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
 import { Chrome, Facebook } from 'lucide-react'
 
