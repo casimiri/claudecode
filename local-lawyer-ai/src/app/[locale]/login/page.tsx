@@ -4,14 +4,17 @@ import { useState } from 'react'
 import { signInWithGoogle, signInWithFacebook } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
 import { Chrome, Facebook } from 'lucide-react'
+import { useParams } from 'next/navigation'
 
 export default function LoginPage() {
+  const params = useParams()
+  const locale = params.locale as string
   const [loading, setLoading] = useState(false)
 
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true)
-      await signInWithGoogle()
+      await signInWithGoogle(locale)
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign in with Google')
     } finally {
@@ -22,7 +25,7 @@ export default function LoginPage() {
   const handleFacebookSignIn = async () => {
     try {
       setLoading(true)
-      await signInWithFacebook()
+      await signInWithFacebook(locale)
     } catch (error: any) {
       toast.error(error.message || 'Failed to sign in with Facebook')
     } finally {

@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Scale, ArrowLeft, Loader2 } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
+import { getCurrentUser } from '../../../../lib/auth'
 
 interface Message {
   id: string
@@ -12,6 +14,9 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const params = useParams()
+  const locale = params.locale as string
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -22,6 +27,8 @@ export default function ChatPage() {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [tokenInfo, setTokenInfo] = useState<{used: number, remaining: number} | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -31,6 +38,30 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    // Check authentication status when component mounts
+    const checkAuth = async () => {
+      try {
+        const user = await getCurrentUser()
+        console.log('Chat page - Current user:', user)
+        setAuthChecked(true)
+        
+        if (!user) {
+          console.log('No user found, redirecting to login')
+          window.location.href = `/${locale}/login`
+          return
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+        setAuthChecked(true)
+        // Redirect to login on auth error
+        window.location.href = `/${locale}/login`
+      }
+    }
+    
+    checkAuth()
+  }, [locale])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,23 +75,74 @@ export default function ChatPage() {
     }
 
     setMessages(prev => [...prev, userMessage])
+    const currentMessages = [...messages, userMessage]
     setInput('')
     setLoading(true)
 
     try {
+      // Check if user is authenticated before making request
+      const currentUser = await getCurrentUser()
+      console.log('Before API call - Current user:', currentUser)
+      
+      if (!currentUser) {
+        throw new Error('You must be logged in to use the chat feature.')
+      }
+
+      // Prepare conversation history for API
+      const conversationHistory = currentMessages
+        .slice(-10) // Keep last 10 messages for context
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+
+      // First test our auth endpoint
+      console.log('Testing auth endpoint first...')
+      const testResponse = await fetch('/api/test/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ test: true }),
+      })
+      
+      const testData = await testResponse.json()
+      console.log('Test auth response:', testResponse.status, testData)
+      
+      if (!testResponse.ok) {
+        throw new Error(`Auth test failed: ${testData.error} - ${testData.details}`)
+      }
+
+      console.log('Making API call to /api/chat...')
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: input.trim() }),
+        credentials: 'include', // Include cookies for authentication
+        body: JSON.stringify({
+          message: userMessage.content,
+          conversationHistory: conversationHistory.slice(0, -1) // Exclude current message
+        }),
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
       const data = await response.json()
+      console.log('API response status:', response.status)
+      console.log('API response data:', data)
+
+      if (!response.ok) {
+        if (data.code === 'TOKEN_LIMIT_EXCEEDED') {
+          throw new Error('You have reached your monthly token limit. Please upgrade your subscription to continue.')
+        }
+        if (data.code === 'USER_NOT_FOUND') {
+          throw new Error('Please complete your registration by visiting your dashboard first.')
+        }
+        if (data.code === 'SUBSCRIPTION_REQUIRED') {
+          throw new Error('An active subscription is required to use the chat feature.')
+        }
+        throw new Error(data.error || 'Failed to get response')
+      }
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -70,11 +152,22 @@ export default function ChatPage() {
       }
 
       setMessages(prev => [...prev, assistantMessage])
-    } catch (error) {
+      
+      // Show token usage info for free plan users
+      if (data.tokensUsed && data.tokensRemaining !== undefined) {
+        setTokenInfo({
+          used: data.tokensUsed,
+          remaining: data.tokensRemaining
+        })
+        console.log(`Tokens used: ${data.tokensUsed}, Remaining: ${data.tokensRemaining}`)
+      }
+
+    } catch (error: any) {
+      console.error('Chat error:', error)
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I apologize, but I encountered an error while processing your request. Please try again.',
+        content: `Sorry, I encountered an error: ${error.message}`,
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, errorMessage])
@@ -87,13 +180,33 @@ export default function ChatPage() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  // Show loading while checking authentication
+  if (!authChecked) {
+    return (
+      <div className="flex flex-col h-screen bg-gray-50">
+        <header className="bg-white shadow-sm px-4 py-4">
+          <div className="flex items-center">
+            <Scale className="h-6 w-6 text-blue-600 mr-2" />
+            <h1 className="text-lg font-semibold text-gray-900">Legal AI Assistant</h1>
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span className="text-gray-600">Checking authentication...</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm px-4 py-4">
         <div className="flex items-center">
           <Link 
-            href="/dashboard"
+            href={`/${locale}/dashboard`}
             className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
           >
             <ArrowLeft className="w-5 h-5 mr-1" />
@@ -101,6 +214,21 @@ export default function ChatPage() {
           </Link>
           <Scale className="h-6 w-6 text-blue-600 mr-2" />
           <h1 className="text-lg font-semibold text-gray-900">Legal AI Assistant</h1>
+          
+          {/* Token usage indicator for free plan users */}
+          {tokenInfo && (
+            <div className="ml-auto flex items-center space-x-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <Zap className="w-4 h-4 mr-1 text-yellow-500" />
+                <span>{tokenInfo.remaining.toLocaleString()} tokens remaining</span>
+              </div>
+              {tokenInfo.remaining < 1000 && (
+                <div className="flex items-center text-orange-600">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 

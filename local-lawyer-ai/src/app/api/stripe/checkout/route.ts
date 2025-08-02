@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createCheckoutSession, createCustomer, PRICE_IDS } from '../../../../../lib/stripe'
 
@@ -11,61 +11,88 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
     }
 
-    const cookieStore = cookies()
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const cookieStore = await cookies()
     
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value
+          },
+          set(name: string, value: string, options: any) {
+            cookieStore.set({ name, value, ...options })
+          },
+          remove(name: string, options: any) {
+            cookieStore.set({ name, value: '', ...options })
+          },
+        },
+      }
+    )
     
-    if (sessionError || !session) {
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    
+    if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get or create user record
-    const { data: user, error: userError } = await supabase
+    const { data: userData, error: userError } = await supabase
       .from('users')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     if (userError) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let customerId = user.customer_id
+    let customerId = userData.stripe_customer_id || userData.customer_id
 
     // Create Stripe customer if doesn't exist
     if (!customerId) {
       const customer = await createCustomer({
-        email: user.email,
-        name: user.full_name || undefined,
+        email: userData.email,
+        name: userData.full_name || undefined,
         metadata: {
-          userId: user.id,
+          userId: userData.id,
         },
       })
 
       customerId = customer.id
 
-      // Update user with customer ID
+      // Update user with customer ID (support both old and new column names)
       await supabase
         .from('users')
-        .update({ customer_id: customerId })
-        .eq('id', user.id)
+        .update({ 
+          stripe_customer_id: customerId,
+          customer_id: customerId 
+        })
+        .eq('id', userData.id)
     }
 
     const priceId = PRICE_IDS[plan as keyof typeof PRICE_IDS]
     
+    // Extract locale from URL for proper redirect
+    const urlParts = request.nextUrl.pathname.split('/')
+    const locale = urlParts[1] || 'en'
+    
     const checkoutSession = await createCheckoutSession({
       priceId,
       customerId,
-      successUrl: `${request.nextUrl.origin}/dashboard?success=true`,
-      cancelUrl: `${request.nextUrl.origin}/subscribe?canceled=true`,
+      successUrl: `${request.nextUrl.origin}/${locale}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${request.nextUrl.origin}/${locale}/subscription?canceled=true`,
       metadata: {
-        userId: user.id,
+        userId: userData.id,
         plan,
       },
     })
 
-    return NextResponse.json({ url: checkoutSession.url })
+    return NextResponse.json({ 
+      url: checkoutSession.url,
+      sessionId: checkoutSession.id 
+    })
   } catch (error: any) {
     console.error('Stripe checkout error:', error)
     return NextResponse.json(

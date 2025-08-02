@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Upload, FileText, ArrowLeft, AlertCircle, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -9,6 +9,7 @@ export default function AdminUploadPage() {
   const [uploading, setUploading] = useState(false)
   const [processing, setProcessing] = useState(false)
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
 
   const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -54,7 +55,8 @@ export default function AdminUploadPage() {
       const uploadData = await uploadResponse.json()
 
       if (!uploadResponse.ok) {
-        throw new Error(uploadData.error || 'Upload failed')
+        console.error('Upload failed:', uploadResponse.status, uploadData)
+        throw new Error(uploadData.error || `Upload failed (${uploadResponse.status})`)
       }
 
       setUploadResult({ success: true, message: 'File uploaded successfully!' })
@@ -85,7 +87,9 @@ export default function AdminUploadPage() {
       }
 
       // Reset form
-      e.currentTarget.reset()
+      if (formRef.current) {
+        formRef.current.reset()
+      }
     } catch (error: any) {
       console.error('Upload error:', error)
       setUploadResult({ success: false, message: error.message || 'Upload failed' })
@@ -123,7 +127,7 @@ export default function AdminUploadPage() {
             </p>
           </div>
 
-          <form onSubmit={handleFileUpload} className="space-y-6">
+          <form ref={formRef} onSubmit={handleFileUpload} className="space-y-6">
             <div>
               <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-2">
                 Select File

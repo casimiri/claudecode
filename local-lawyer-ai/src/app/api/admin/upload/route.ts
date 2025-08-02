@@ -22,7 +22,14 @@ function verifyAdminToken(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = verifyAdminToken(request)
+    // Add better error logging for admin verification
+    let admin
+    try {
+      admin = verifyAdminToken(request)
+    } catch (authError: any) {
+      console.error('Admin authentication failed:', authError.message)
+      return NextResponse.json({ error: 'Authentication required. Please login as admin.' }, { status: 401 })
+    }
     
     const formData = await request.formData()
     const file = formData.get('file') as File

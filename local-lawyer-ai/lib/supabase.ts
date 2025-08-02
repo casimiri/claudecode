@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Use SSR-compatible client for browser
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 // Create admin client - this will only work on the server side
 function createAdminClient() {
@@ -30,11 +32,17 @@ function createAdminClient() {
 // Lazy initialization - only create when actually used
 let _supabaseAdmin: ReturnType<typeof createAdminClient> | null = null
 
-export const supabaseAdmin = {
-  get client() {
-    if (!_supabaseAdmin) {
-      _supabaseAdmin = createAdminClient()
-    }
-    return _supabaseAdmin
+export function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createAdminClient()
   }
+  return _supabaseAdmin
 }
+
+// Use a getter to create the client lazily
+export const supabaseAdmin = new Proxy({} as any, {
+  get: function(target, prop) {
+    const client = getSupabaseAdmin()
+    return client[prop as keyof typeof client]
+  }
+})

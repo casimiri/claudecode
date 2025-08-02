@@ -11,12 +11,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
-    // Find admin user
-    const { data: admin, error } = await supabaseAdmin.client
+    // Find admin user using service role which should bypass RLS
+    const { data: adminArray, error } = await supabaseAdmin
       .from('admins')
       .select('*')
       .eq('email', email)
-      .single()
+    
+    const admin = adminArray?.[0]
 
     if (error || !admin) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })

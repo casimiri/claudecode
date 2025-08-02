@@ -3,8 +3,22 @@
 import { useState } from 'react'
 import { Check, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useParams } from 'next/navigation'
 
 const plans = [
+  {
+    id: 'free',
+    name: 'Free',
+    price: '$0',
+    interval: 'forever',
+    features: [
+      '5 legal questions per month',
+      'Basic AI-powered responses',
+      'Community support',
+      'Public law document access',
+    ],
+    isFree: true,
+  },
   {
     id: 'weekly',
     name: 'Weekly',
@@ -49,11 +63,34 @@ const plans = [
 ]
 
 export default function SubscribePage() {
+  const params = useParams()
+  const locale = params.locale as string
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleSubscribe = async (planId: string) => {
     try {
       setLoading(planId)
+      
+      // Handle free plan differently
+      if (planId === 'free') {
+        // For free plan, call our free subscription API
+        const response = await fetch('/api/subscription/free', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to activate free subscription')
+        }
+
+        toast.success(data.message || 'Welcome! You can now access the free tier.')
+        window.location.href = `/${locale}/dashboard`
+        return
+      }
       
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -90,7 +127,7 @@ export default function SubscribePage() {
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => (
             <div
               key={plan.id}
@@ -143,7 +180,9 @@ export default function SubscribePage() {
                     onClick={() => handleSubscribe(plan.id)}
                     disabled={loading === plan.id}
                     className={`w-full py-3 px-4 rounded-md font-semibold text-sm transition-colors ${
-                      plan.popular
+                      plan.isFree 
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : plan.popular
                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                         : 'bg-gray-900 text-white hover:bg-gray-800'
                     } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
@@ -153,6 +192,8 @@ export default function SubscribePage() {
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                         Processing...
                       </>
+                    ) : plan.isFree ? (
+                      'Start Free'
                     ) : (
                       'Get Started'
                     )}

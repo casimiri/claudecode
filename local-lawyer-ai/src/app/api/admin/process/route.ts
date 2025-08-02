@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase'
 import { createEmbedding } from '../../../../../lib/openai'
 import jwt from 'jsonwebtoken'
+// Dynamic imports to avoid build issues
 // import pdfParse from 'pdf-parse'
 // import mammoth from 'mammoth'
 
@@ -51,23 +52,37 @@ function chunkText(text: string, maxLength: number = 1000): string[] {
 }
 
 async function extractTextFromFile(filePath: string, contentType: string): Promise<string> {
+  console.log('Downloading file from storage:', filePath)
+  
   // Download file from Supabase Storage
   const { data: fileData, error } = await supabaseAdmin.storage
     .from('legal-documents')
     .download(filePath)
 
   if (error || !fileData) {
-    throw new Error('Failed to download file')
+    console.error('Storage download error:', error)
+    throw new Error(`Failed to download file: ${error?.message || 'Unknown error'}`)
   }
+  
+  console.log('File downloaded successfully, size:', fileData.size)
 
   const buffer = Buffer.from(await fileData.arrayBuffer())
 
   switch (contentType) {
     case 'application/pdf':
-      const pdfData = await pdfParse(buffer)
-      return pdfData.text
+      try {
+        // Try to avoid the debug mode issue by requiring directly
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const pdfParse = require('pdf-parse')
+        const pdfData = await pdfParse(buffer)
+        return pdfData.text
+      } catch (error: any) {
+        console.error('PDF parsing failed:', error.message)
+        throw new Error('Failed to parse PDF file')
+      }
 
     case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      const mammoth = await import('mammoth')
       const docxResult = await mammoth.extractRawText({ buffer })
       return docxResult.value
 
@@ -104,6 +119,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract text from file
+    console.log('Processing document:', {
+      id: documentId,
+      filename: document.filename,
+      filePath: document.file_path,
+      contentType: document.content_type
+    })
+    
     const text = await extractTextFromFile(document.file_path, document.content_type)
 
     if (!text || text.trim().length === 0) {

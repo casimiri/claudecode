@@ -1,10 +1,10 @@
 import { supabase } from './supabase'
 
-export const signInWithGoogle = async () => {
+export const signInWithGoogle = async (locale?: string) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${window.location.origin}/auth/callback?locale=${locale || 'en'}`
     }
   })
   
@@ -12,11 +12,11 @@ export const signInWithGoogle = async () => {
   return data
 }
 
-export const signInWithFacebook = async () => {
+export const signInWithFacebook = async (locale?: string) => {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'facebook',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`
+      redirectTo: `${window.location.origin}/auth/callback?locale=${locale || 'en'}`
     }
   })
   

@@ -35,6 +35,7 @@ export default async function HomePage({ params }: Props) {
       pricing: {
         title: "Flexible Pricing Plans",
         subtitle: "Choose the plan that works best for your legal needs",
+        free: "Free",
         weekly: "Weekly",
         monthly: "Monthly (Popular)",
         yearly: "Yearly"
@@ -66,6 +67,7 @@ export default async function HomePage({ params }: Props) {
       pricing: {
         title: "Plans tarifaires flexibles",
         subtitle: "Choisissez le plan qui convient le mieux à vos besoins juridiques",
+        free: "Gratuit",
         weekly: "Hebdomadaire",
         monthly: "Mensuel (Populaire)",
         yearly: "Annuel"
@@ -167,7 +169,11 @@ export default async function HomePage({ params }: Props) {
             <p className="mt-4 text-lg text-gray-500">
               {t.pricing.subtitle}
             </p>
-            <div className="mt-8 flex justify-center space-x-4">
+            <div className="mt-8 flex justify-center space-x-4 flex-wrap gap-4">
+              <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
+                <span className="text-sm text-green-600">{t.pricing.free}</span>
+                <div className="text-2xl font-bold text-gray-900">$0</div>
+              </div>
               <div className="bg-gray-50 rounded-lg p-4">
                 <span className="text-sm text-gray-500">{t.pricing.weekly}</span>
                 <div className="text-2xl font-bold text-gray-900">$9.99</div>

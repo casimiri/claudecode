@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
-import { Scale, MessageCircle, CreditCard, Settings, LogOut } from 'lucide-react'
+import { Scale, MessageCircle, CreditCard, Settings, LogOut, Zap, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { signOut } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
+import { useParams } from 'next/navigation'
 
 interface UserProfile {
   id: string
@@ -16,11 +17,27 @@ interface UserProfile {
   subscription_status: string
   subscription_plan: string | null
   current_period_end: string | null
+  tokens_used_this_period?: number
+  tokens_limit?: number
+  period_end_date?: string
+}
+
+interface TokenUsageStats {
+  tokensUsed: number
+  tokensLimit: number
+  tokensRemaining: number
+  periodStart: string
+  periodEnd: string
+  planType: string
+  usagePercentage: number
 }
 
 export default function DashboardPage() {
+  const params = useParams()
+  const locale = params.locale as string
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [tokenStats, setTokenStats] = useState<TokenUsageStats | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -41,6 +58,19 @@ export default function DashboardPage() {
             console.error('Error fetching profile:', error)
           } else {
             setProfile(userProfile)
+            
+            // Fetch token usage stats for free plan users
+            if (userProfile.subscription_plan === 'free') {
+              try {
+                const response = await fetch('/api/tokens/usage')
+                if (response.ok) {
+                  const { data } = await response.json()
+                  setTokenStats(data)
+                }
+              } catch (error) {
+                console.error('Error fetching token stats:', error)
+              }
+            }
           }
         }
       } catch (error) {
@@ -97,7 +127,7 @@ export default function DashboardPage() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900">Access Denied</h1>
           <p className="mt-2 text-gray-600">Please sign in to access your dashboard.</p>
-          <Link href="/login" className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md">
+          <Link href={`/${locale}/login`} className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md">
             Sign In
           </Link>
         </div>
@@ -155,17 +185,102 @@ export default function DashboardPage() {
                 </p>
               )}
             </div>
-            {profile.subscription_status === 'active' && (
-              <button
-                onClick={createBillingPortalSession}
-                className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm"
+            <div className="flex space-x-2">
+              <Link
+                href={`/${locale}/subscription`}
+                className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
               >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Manage Billing
-              </button>
-            )}
+                <Settings className="w-4 h-4 mr-2" />
+                Manage Subscription
+              </Link>
+              {profile.subscription_status === 'active' && profile.subscription_plan !== 'free' && (
+                <button
+                  onClick={createBillingPortalSession}
+                  className="flex items-center bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md text-sm"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Billing Portal
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Token Usage for Free Plan */}
+        {profile.subscription_plan === 'free' && tokenStats && (
+          <div className="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <Zap className="h-6 w-6 text-yellow-500 mr-2" />
+              AI Token Usage
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Monthly Usage</span>
+                  <span className="text-sm text-gray-500">
+                    {tokenStats.tokensUsed.toLocaleString()} / {tokenStats.tokensLimit.toLocaleString()} tokens
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      tokenStats.usagePercentage >= 90 
+                        ? 'bg-red-500' 
+                        : tokenStats.usagePercentage >= 75 
+                        ? 'bg-orange-500' 
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${Math.min(tokenStats.usagePercentage, 100)}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className={`text-sm font-medium ${
+                    tokenStats.usagePercentage >= 90 
+                      ? 'text-red-600' 
+                      : tokenStats.usagePercentage >= 75 
+                      ? 'text-orange-600' 
+                      : 'text-green-600'
+                  }`}>
+                    {tokenStats.usagePercentage}% used
+                  </span>
+                  <span className="text-sm text-gray-500 flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    Resets {new Date(tokenStats.periodEnd).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              
+              {tokenStats.usagePercentage >= 80 && (
+                <div className={`p-3 rounded-md ${
+                  tokenStats.usagePercentage >= 90 
+                    ? 'bg-red-50 border border-red-200' 
+                    : 'bg-orange-50 border border-orange-200'
+                }`}>
+                  <p className={`text-sm ${
+                    tokenStats.usagePercentage >= 90 
+                      ? 'text-red-700' 
+                      : 'text-orange-700'
+                  }`}>
+                    {tokenStats.usagePercentage >= 90 
+                      ? 'You\'re almost out of tokens! Consider upgrading to continue using AI features.'
+                      : 'You\'re using most of your monthly tokens. Consider upgrading for unlimited access.'
+                    }
+                  </p>
+                  <Link 
+                    href={`/${locale}/subscribe`}
+                    className={`inline-flex items-center mt-2 px-3 py-1 rounded-md text-sm font-medium ${
+                      tokenStats.usagePercentage >= 90 
+                        ? 'bg-red-600 text-white hover:bg-red-700' 
+                        : 'bg-orange-600 text-white hover:bg-orange-700'
+                    }`}
+                  >
+                    Upgrade Now
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Main Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -180,7 +295,7 @@ export default function DashboardPage() {
             </p>
             {profile.subscription_status === 'active' ? (
               <Link 
-                href="/chat"
+                href={`/${locale}/chat`}
                 className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
               >
                 Start Chatting
@@ -189,7 +304,7 @@ export default function DashboardPage() {
               <div>
                 <p className="text-red-600 text-sm mb-2">Active subscription required</p>
                 <Link 
-                  href="/subscribe"
+                  href={`/${locale}/subscribe`}
                   className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md"
                 >
                   Subscribe Now

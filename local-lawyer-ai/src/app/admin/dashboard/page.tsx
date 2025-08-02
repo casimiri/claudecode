@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Upload, FileText, Users, LogOut, AlertCircle, CheckCircle } from 'lucide-react'
+import { Upload, FileText, Users, LogOut, AlertCircle, CheckCircle, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 interface Document {
   id: string
@@ -25,6 +26,7 @@ export default function AdminDashboardPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -59,6 +61,39 @@ export default function AdminDashboardPage() {
       window.location.href = '/admin/login'
     } catch (error) {
       console.error('Logout error:', error)
+    }
+  }
+
+  const handleDeleteDocument = async (documentId: string, filename: string) => {
+    if (!confirm(`Are you sure you want to permanently delete "${filename}"? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeletingId(documentId)
+    
+    try {
+      const response = await fetch(`/api/admin/documents/${documentId}`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Delete failed')
+      }
+
+      toast.success('Document deleted successfully')
+      
+      // Remove document from local state
+      setDocuments(documents.filter(doc => doc.id !== documentId))
+      
+      // Refresh stats
+      fetchData()
+    } catch (error: any) {
+      console.error('Delete error:', error)
+      toast.error(error.message || 'Failed to delete document')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -177,6 +212,9 @@ export default function AdminDashboardPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Uploaded
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -214,11 +252,22 @@ export default function AdminDashboardPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(doc.created_at).toLocaleDateString()}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button
+                          onClick={() => handleDeleteDocument(doc.id, doc.filename)}
+                          disabled={deletingId === doc.id}
+                          className="inline-flex items-center text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Delete document permanently"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" />
+                          {deletingId === doc.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
                       No documents uploaded yet
                     </td>
                   </tr>
