@@ -3,10 +3,11 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createEmbedding, generateChatResponse } from '../../../../lib/openai'
 import { estimateTokens, consumeUserTokens, canUserConsumeTokens } from '../../../../lib/tokenUsage'
+import { createConversation, saveChatExchange, generateConversationTitle } from '../../../../lib/chatPersistence'
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory } = await request.json()
+    const { message, conversationHistory, conversationId } = await request.json()
 
     if (!message || typeof message !== 'string') {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -122,6 +123,39 @@ export async function POST(request: NextRequest) {
     // Use actual tokens from OpenAI response instead of estimation
     const actualTokensUsed = chatResponse.usage?.total_tokens || estimatedTokens
 
+    // Handle conversation persistence
+    let currentConversationId = conversationId
+    
+    // Create new conversation if none provided (first message)
+    if (!currentConversationId) {
+      const conversationTitle = generateConversationTitle(message)
+      currentConversationId = await createConversation(user.id, conversationTitle)
+    }
+
+    // Save the chat exchange to database
+    try {
+      await saveChatExchange(
+        currentConversationId,
+        user.id,
+        message,
+        chatResponse.content,
+        actualTokensUsed,
+        relevantChunks?.length || 0,
+        {
+          prompt_tokens: chatResponse.usage?.prompt_tokens || 0,
+          completion_tokens: chatResponse.usage?.completion_tokens || 0,
+          total_tokens: chatResponse.usage?.total_tokens || 0,
+          sources: relevantChunks?.map((chunk: any) => ({
+            similarity: chunk.similarity,
+            content_preview: chunk.content.substring(0, 100)
+          })) || []
+        }
+      )
+    } catch (persistenceError) {
+      console.error('Failed to save chat to database:', persistenceError)
+      // Continue with response even if persistence fails
+    }
+
     // Consume tokens for free plan users after successful response
     if (userData.subscription_plan === 'free') {
       const tokenConsumption = await consumeUserTokens(
@@ -134,7 +168,8 @@ export async function POST(request: NextRequest) {
           response_length: chatResponse.content.length,
           prompt_tokens: chatResponse.usage?.prompt_tokens || 0,
           completion_tokens: chatResponse.usage?.completion_tokens || 0,
-          total_tokens: chatResponse.usage?.total_tokens || 0
+          total_tokens: chatResponse.usage?.total_tokens || 0,
+          conversation_id: currentConversationId
         }
       )
       
@@ -147,14 +182,16 @@ export async function POST(request: NextRequest) {
         sources: relevantChunks?.length || 0,
         tokensUsed: actualTokensUsed,
         tokensRemaining: tokenConsumption.tokensRemaining,
-        usage: chatResponse.usage
+        usage: chatResponse.usage,
+        conversationId: currentConversationId
       })
     }
 
     return NextResponse.json({ 
       response: chatResponse.content,
       sources: relevantChunks?.length || 0,
-      usage: chatResponse.usage
+      usage: chatResponse.usage,
+      conversationId: currentConversationId
     })
   } catch (error: any) {
     console.error('Chat API error:', error)

@@ -87,18 +87,33 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // If user exists but doesn't have free plan, upgrade them to free
+    // If user exists but doesn't have free plan, update them to free
     if (existingUser.subscription_plan !== 'free' || existingUser.subscription_status !== 'active') {
+      // When switching to free plan, only reset tokens if coming from a paid plan
+      // and preserve current usage if already on free plan
+      const shouldResetTokens = existingUser.subscription_plan !== 'free'
+      
+      const updateData: any = {
+        subscription_status: 'active',
+        subscription_plan: 'free',
+        tokens_limit: 10000,
+        subscription_start_date: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      // Only reset tokens and period if switching from a paid plan
+      if (shouldResetTokens) {
+        updateData.tokens_used_this_period = 0
+        updateData.period_start_date = new Date().toISOString()
+        updateData.period_end_date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        updateData.current_period_start = new Date().toISOString()
+        updateData.current_period_end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        updateData.last_token_reset_date = new Date().toISOString()
+      }
+
       const { data: updatedUser, error: updateError } = await supabase
         .from('users')
-        .update({
-          subscription_status: 'active',
-          subscription_plan: 'free',
-          tokens_used_this_period: 0,
-          tokens_limit: 10000,
-          period_start_date: new Date().toISOString(),
-          period_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        })
+        .update(updateData)
         .eq('id', user.id)
         .select()
         .single()
@@ -113,7 +128,9 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ 
         success: true, 
-        message: 'Free subscription activated successfully!',
+        message: shouldResetTokens 
+          ? 'Free subscription activated with fresh token allocation!' 
+          : 'Free subscription reactivated successfully!',
         user: updatedUser
       })
     }

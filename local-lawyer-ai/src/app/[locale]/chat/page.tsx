@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, History } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { getCurrentUser } from '../../../../lib/auth'
@@ -11,24 +11,31 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  tokens_used?: number
+  sources_count?: number
+}
+
+interface Conversation {
+  id: string
+  title: string
+  message_count: number
+  last_message_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 export default function ChatPage() {
   const params = useParams()
   const locale = params.locale as string
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your AI legal assistant. I can help you with questions about local laws and regulations. What would you like to know?',
-      timestamp: new Date(),
-    }
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [tokenInfo, setTokenInfo] = useState<{used: number, remaining: number} | null>(null)
   const [authChecked, setAuthChecked] = useState(false)
+  const [showConversations, setShowConversations] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -38,6 +45,64 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Load conversations for the user
+  const loadConversations = async () => {
+    try {
+      const response = await fetch('/api/chat/conversations', {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setConversations(data.conversations || [])
+      }
+    } catch (error) {
+      console.error('Failed to load conversations:', error)
+    }
+  }
+
+  // Load messages for a specific conversation
+  const loadConversationMessages = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/chat/conversations/${conversationId}`, {
+        credentials: 'include'
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const formattedMessages = data.messages.map((msg: any) => ({
+          id: msg.id,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.created_at),
+          tokens_used: msg.tokens_used,
+          sources_count: msg.sources_count
+        }))
+        setMessages(formattedMessages)
+      }
+    } catch (error) {
+      console.error('Failed to load conversation messages:', error)
+    }
+  }
+
+  // Start a new conversation
+  const startNewConversation = () => {
+    setCurrentConversationId(null)
+    setMessages([{
+      id: 'welcome',
+      role: 'assistant',
+      content: 'Hello! I\'m your AI legal assistant. I can help you with questions about local laws and regulations. What would you like to know?',
+      timestamp: new Date(),
+    }])
+  }
+
+  // Select a conversation
+  const selectConversation = async (conversation: Conversation) => {
+    setCurrentConversationId(conversation.id)
+    await loadConversationMessages(conversation.id)
+    setShowConversations(false)
+  }
 
   useEffect(() => {
     // Check authentication status when component mounts
@@ -52,6 +117,12 @@ export default function ChatPage() {
           window.location.href = `/${locale}/login`
           return
         }
+
+        // Load user's conversations
+        await loadConversations()
+        
+        // Start with a new conversation
+        startNewConversation()
       } catch (error) {
         console.error('Auth check error:', error)
         setAuthChecked(true)
@@ -123,7 +194,8 @@ export default function ChatPage() {
         credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           message: userMessage.content,
-          conversationHistory: conversationHistory.slice(0, -1) // Exclude current message
+          conversationHistory: conversationHistory.slice(0, -1), // Exclude current message
+          conversationId: currentConversationId
         }),
       })
 
@@ -149,9 +221,18 @@ export default function ChatPage() {
         role: 'assistant',
         content: data.response,
         timestamp: new Date(),
+        tokens_used: data.tokensUsed,
+        sources_count: data.sources
       }
 
       setMessages(prev => [...prev, assistantMessage])
+      
+      // Update current conversation ID if this was a new conversation
+      if (data.conversationId && !currentConversationId) {
+        setCurrentConversationId(data.conversationId)
+        // Reload conversations to show the new one
+        loadConversations()
+      }
       
       // Show token usage info for free plan users
       if (data.tokensUsed && data.tokensRemaining !== undefined) {
@@ -215,6 +296,24 @@ export default function ChatPage() {
           <Scale className="h-6 w-6 text-blue-600 mr-2" />
           <h1 className="text-lg font-semibold text-gray-900">Legal AI Assistant</h1>
           
+          {/* Conversation controls */}
+          <div className="ml-4 flex items-center space-x-2">
+            <button
+              onClick={() => setShowConversations(!showConversations)}
+              className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              <History className="w-4 h-4 mr-1" />
+              History
+            </button>
+            <button
+              onClick={startNewConversation}
+              className="flex items-center px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              New
+            </button>
+          </div>
+          
           {/* Token usage indicator for free plan users */}
           {tokenInfo && (
             <div className="ml-auto flex items-center space-x-2">
@@ -231,6 +330,49 @@ export default function ChatPage() {
           )}
         </div>
       </header>
+
+      {/* Conversation Sidebar */}
+      {showConversations && (
+        <div className="bg-white border-b shadow-sm">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Conversations</h3>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {conversations.length === 0 ? (
+                <p className="text-sm text-gray-500">No previous conversations</p>
+              ) : (
+                conversations.map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    onClick={() => selectConversation(conversation)}
+                    className={`w-full text-left p-3 rounded-lg border hover:bg-gray-50 ${
+                      currentConversationId === conversation.id 
+                        ? 'bg-blue-50 border-blue-200' 
+                        : 'border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {conversation.title}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {conversation.message_count} messages
+                          {conversation.last_message_at && (
+                            <span className="ml-2">
+                              • {new Date(conversation.last_message_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
