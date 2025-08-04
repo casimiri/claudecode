@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { createCheckoutSession, createCustomer, PRICE_IDS } from '../../../../../lib/stripe'
+import { getSupabaseAdmin } from '../../../../../lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,13 +39,60 @@ export async function POST(request: NextRequest) {
     }
 
     // Get or create user record
-    const { data: userData, error: userError } = await supabase
+    const { data: initialUserData, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
 
-    if (userError) {
+    let userData = initialUserData
+
+    // If user not found, create them with default free plan
+    if (userError && userError.code === 'PGRST116') {
+      const supabaseAdmin = getSupabaseAdmin()
+      
+      const { error: createError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: user.id,
+          email: user.email!,
+          full_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
+          avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
+          provider: user.app_metadata?.provider || 'google',
+          provider_id: user.user_metadata?.provider_id || user.id,
+          subscription_plan: 'free',
+          subscription_status: 'active',
+          tokens_used_this_period: 0,
+          tokens_limit: 10000,
+          period_start_date: new Date().toISOString(),
+          period_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        })
+
+      if (createError) {
+        console.error('Error creating user:', createError)
+        return NextResponse.json(
+          { error: 'Failed to create user profile' },
+          { status: 500 }
+        )
+      }
+
+      // Retry getting user data after creation
+      const { data: newUserData, error: retryError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (retryError || !newUserData) {
+        return NextResponse.json(
+          { error: 'Failed to retrieve user after creation' },
+          { status: 500 }
+        )
+      }
+
+      userData = newUserData
+    } else if (userError || !userData) {
+      console.error('User lookup error:', userError)
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
