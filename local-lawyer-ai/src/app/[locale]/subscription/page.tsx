@@ -413,9 +413,11 @@ export default function SubscriptionPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {plans.map((plan) => {
               const isCurrentPlan = subscriptionData?.subscription_plan === plan.id
-              const isDowngrade = subscriptionData && 
-                ['yearly', 'monthly', 'weekly', 'free'].indexOf(subscriptionData.subscription_plan) > 
-                ['yearly', 'monthly', 'weekly', 'free'].indexOf(plan.id)
+              const planHierarchy = ['free', 'weekly', 'monthly', 'yearly']
+              const currentPlanIndex = planHierarchy.indexOf(subscriptionData?.subscription_plan || 'free')
+              const targetPlanIndex = planHierarchy.indexOf(plan.id)
+              const isUpgrade = targetPlanIndex > currentPlanIndex
+              const isDowngrade = targetPlanIndex < currentPlanIndex
 
               return (
                 <div
@@ -483,7 +485,9 @@ export default function SubscriptionPage() {
                           ? 'bg-green-600 text-white hover:bg-green-700'
                           : isDowngrade
                           ? 'bg-red-600 text-white hover:bg-red-700'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                          : isUpgrade
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-600 text-white hover:bg-gray-700'
                       } disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center`}
                     >
                       {changingPlan === plan.id ? (
@@ -495,10 +499,12 @@ export default function SubscriptionPage() {
                         'Current Plan'
                       ) : isDowngrade ? (
                         'Downgrade'
+                      ) : isUpgrade ? (
+                        'Upgrade'
                       ) : plan.isFree ? (
                         'Switch to Free'
                       ) : (
-                        'Upgrade'
+                        'Select Plan'
                       )}
                     </button>
                   </div>

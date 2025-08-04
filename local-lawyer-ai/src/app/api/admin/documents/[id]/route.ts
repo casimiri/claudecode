@@ -15,7 +15,7 @@ function verifyAdminToken(request: NextRequest) {
       throw new Error('Invalid role')
     }
     return decoded
-  } catch (error) {
+  } catch {
     throw new Error('Invalid token')
   }
 }
@@ -26,7 +26,7 @@ export async function DELETE(
 ) {
   try {
     // Verify admin authentication
-    const admin = verifyAdminToken(request)
+    verifyAdminToken(request)
     const { id: documentId } = await params
 
     if (!documentId) {

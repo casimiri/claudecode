@@ -253,7 +253,6 @@ export async function getUserTokenHistory(
 export function formatTokenUsage(tokensUsed: number, tokensLimit: number): string {
   if (tokensLimit === 0) return '0 tokens'
   
-  const remaining = tokensLimit - tokensUsed
   const percentage = Math.round((tokensUsed / tokensLimit) * 100)
   
   return `${tokensUsed.toLocaleString()} / ${tokensLimit.toLocaleString()} tokens used (${percentage}%)`

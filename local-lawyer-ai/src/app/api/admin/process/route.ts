@@ -19,7 +19,7 @@ function verifyAdminToken(request: NextRequest) {
       throw new Error('Invalid role')
     }
     return decoded
-  } catch (error) {
+  } catch {
     throw new Error('Invalid token')
   }
 }
@@ -96,7 +96,7 @@ async function extractTextFromFile(filePath: string, contentType: string): Promi
 
 export async function POST(request: NextRequest) {
   try {
-    const admin = verifyAdminToken(request)
+    verifyAdminToken(request)
     const { documentId } = await request.json()
 
     if (!documentId) {
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', documentId)
-      } catch (e) {
+      } catch {
         // Ignore errors in error handling
       }
     }

@@ -15,7 +15,7 @@ function verifyAdminToken(request: NextRequest) {
       throw new Error('Invalid role')
     }
     return decoded
-  } catch (error) {
+  } catch {
     throw new Error('Invalid token')
   }
 }
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     const filePath = `legal-documents/${filename}`
 
     // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('legal-documents')
       .upload(filePath, file)
 

@@ -15,14 +15,14 @@ function verifyAdminToken(request: NextRequest) {
       throw new Error('Invalid role')
     }
     return decoded
-  } catch (error) {
+  } catch {
     throw new Error('Invalid token')
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const admin = verifyAdminToken(request)
+    verifyAdminToken(request)
 
     const [
       { count: totalUsers },

@@ -87,7 +87,7 @@ export default function DashboardPage() {
     try {
       await signOut()
       window.location.href = '/'
-    } catch (error: any) {
+    } catch {
       toast.error('Failed to sign out')
     }
   }
