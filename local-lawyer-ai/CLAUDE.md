@@ -102,8 +102,12 @@ token_usage_logs: id, user_id, tokens_used, action_type, request_details
 - `NEXT_PUBLIC_SUPABASE_URL` & `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase connection
 - `SUPABASE_SERVICE_ROLE_KEY` - Admin database operations
 - `OPENAI_API_KEY` - GPT-3.5 and embeddings
-- `STRIPE_SECRET_KEY` & webhook config - Payment processing
+- `STRIPE_SECRET_KEY` & `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` - Stripe payment processing
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook verification
+- `JWT_SECRET` - Admin JWT token signing
 - `ADMIN_EMAIL` & `ADMIN_PASSWORD` - Initial admin account
+- `NEXTAUTH_SECRET` & `NEXTAUTH_URL` - NextAuth configuration (if using OAuth)
+- Optional OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_CLIENT_ID`, `FACEBOOK_CLIENT_SECRET`
 
 ### Database Functions (PostgreSQL)
 - `search_document_chunks(query_embedding, match_threshold, match_count)` - Vector similarity search
@@ -150,3 +154,36 @@ token_usage_logs: id, user_id, tokens_used, action_type, request_details
 - OpenAI API access for embeddings and chat
 - Storage bucket named `legal-documents` in Supabase
 - Environment variables configured in hosting platform
+
+### File Structure Overview
+```
+src/app/
+├── [locale]/           # Internationalized user pages
+│   ├── chat/          # Main chat interface
+│   ├── dashboard/     # User dashboard and profile
+│   ├── login/         # User authentication
+│   └── subscribe/     # Subscription plans
+├── admin/             # Admin-only pages (separate auth)
+│   ├── dashboard/     # Admin stats and overview
+│   ├── login/         # Admin authentication
+│   └── upload/        # Document upload interface
+└── api/               # API routes
+    ├── admin/         # Admin API endpoints (JWT auth)
+    ├── chat/          # Chat and conversation management
+    ├── stripe/        # Payment processing
+    └── tokens/        # Token usage tracking
+```
+
+### API Route Authentication Patterns
+- **User routes** (`/api/chat`, `/api/stripe`, `/api/tokens`): Require Supabase auth cookies
+- **Admin routes** (`/api/admin/*`): Require JWT token in Authorization header
+- **Public routes** (`/api/stripe/webhook`): No auth but verify signatures
+- **Debug routes** (`/api/debug/*`, `/api/test/*`): Development only
+
+### Key Library Files
+- `lib/supabase.ts` - Database client configuration with RLS
+- `lib/openai.ts` - OpenAI client for chat and embeddings  
+- `lib/stripe.ts` - Stripe integration for subscriptions
+- `lib/auth.ts` - Admin JWT authentication utilities
+- `lib/tokenUsage.ts` - Token consumption tracking
+- `lib/chatPersistence.ts` - Conversation history management
