@@ -6,7 +6,7 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS subscription_start_date TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS last_token_reset_date TIMESTAMPTZ DEFAULT NOW(),
   ADD COLUMN IF NOT EXISTS current_period_start TIMESTAMPTZ DEFAULT NOW(),
-  ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days');
+  ADD COLUMN IF NOT EXISTS current_period_end TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '2 days');
 
 -- 2. Update existing users to have proper subscription dates
 UPDATE public.users 
@@ -14,7 +14,7 @@ SET
   subscription_start_date = COALESCE(created_at, NOW()),
   last_token_reset_date = COALESCE(period_start_date, NOW()),
   current_period_start = COALESCE(period_start_date, NOW()),
-  current_period_end = COALESCE(period_end_date, NOW() + INTERVAL '30 days')
+  current_period_end = COALESCE(period_end_date, NOW() + INTERVAL '2 days')
 WHERE subscription_start_date IS NULL;
 
 -- 3. Create function to calculate next reset date based on subscription plan and start date
@@ -33,7 +33,7 @@ BEGIN
     WHEN 'weekly' THEN interval_duration := INTERVAL '7 days';
     WHEN 'monthly' THEN interval_duration := INTERVAL '30 days';
     WHEN 'yearly' THEN interval_duration := INTERVAL '365 days';
-    ELSE interval_duration := INTERVAL '30 days'; -- default for free
+    ELSE interval_duration := INTERVAL '2 days'; -- default for free
   END CASE;
   
   -- Calculate how many complete periods have elapsed
@@ -65,7 +65,7 @@ BEGIN
     WHEN 'weekly' THEN interval_duration := INTERVAL '7 days';
     WHEN 'monthly' THEN interval_duration := INTERVAL '30 days';
     WHEN 'yearly' THEN interval_duration := INTERVAL '365 days';
-    ELSE interval_duration := INTERVAL '30 days'; -- default for free
+    ELSE interval_duration := INTERVAL '2 days'; -- default for free
   END CASE;
   
   -- Calculate how many complete periods have elapsed

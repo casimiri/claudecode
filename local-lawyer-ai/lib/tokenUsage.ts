@@ -4,11 +4,7 @@ export interface TokenUsageStats {
   tokensUsed: number
   tokensLimit: number
   tokensRemaining: number
-  periodStart: string
-  periodEnd: string
-  planType: string
   usagePercentage: number
-  wasReset?: boolean
 }
 
 export interface TokenConsumptionResult {
@@ -35,43 +31,22 @@ export async function getUserTokenStats(userId: string): Promise<TokenUsageStats
   try {
     const supabase = getSupabaseAdmin()
     
-    // Try the database function first
-    const { data, error } = await supabase
-      .rpc('get_user_token_stats_with_reset', { user_uuid: userId })
-
-    if (!error && data && data.length > 0) {
-      const stats = data[0]
-      // Check if we got valid period_end, if not fall back to direct query
-      if (stats.period_end) {
-        return {
-          tokensUsed: stats.tokens_used || 0,
-          tokensLimit: stats.tokens_limit || 0,
-          tokensRemaining: stats.tokens_remaining || 0,
-          periodStart: stats.period_start,
-          periodEnd: stats.period_end,
-          planType: stats.plan_type || 'free',
-          usagePercentage: stats.usage_percentage || 0,
-          wasReset: stats.was_reset || false,
-        }
-      }
-    }
-    
-    // Fallback: query user table directly and calculate stats
-    console.log('Falling back to direct user query for token stats')
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('tokens_used_this_period, total_tokens_purchased, tokens_limit')
       .eq('id', userId)
       .single()
 
     if (userError || !userData) {
-      console.error('Error getting user data:', userError)
+      console.error('❌ Error getting user data:', userError)
       return null
     }
 
-    // Calculate remaining tokens
+    console.log(`📊 USER TOKEN DATA: User ${userId} - Used: ${userData.tokens_used_this_period || 0}, Total Purchased: ${userData.total_tokens_purchased || 0}, Tokens Limit: ${userData.tokens_limit || 0}`)
+
     const tokensUsed = userData.tokens_used_this_period || 0
-    const tokensLimit = userData.tokens_limit || 10000
+    // Use total_tokens_purchased if available, otherwise fall back to tokens_limit
+    const tokensLimit = userData.total_tokens_purchased || userData.tokens_limit || 0
     const tokensRemaining = Math.max(0, tokensLimit - tokensUsed)
     const usagePercentage = tokensLimit > 0 ? (tokensUsed / tokensLimit) * 100 : 0
 
@@ -79,11 +54,7 @@ export async function getUserTokenStats(userId: string): Promise<TokenUsageStats
       tokensUsed,
       tokensLimit,
       tokensRemaining,
-      periodStart: userData.current_period_start || userData.period_start_date || userData.subscription_start_date || userData.created_at,
-      periodEnd: userData.current_period_end || userData.period_end_date,
-      planType: userData.subscription_plan || 'free',
       usagePercentage,
-      wasReset: false,
     }
   } catch (error) {
     console.error('Error in getUserTokenStats:', error)
@@ -151,12 +122,20 @@ export async function consumeUserTokens(
 
     // Update the user's token usage
     const newTokensUsed = (userData.tokens_used_this_period || 0) + tokensToConsume
+    console.log(`💰 TOKEN CONSUMPTION: User ${userId} - Current: ${userData.tokens_used_this_period || 0}, Consuming: ${tokensToConsume}, New Total: ${newTokensUsed}`)
+    
     const { error: updateError } = await supabase
       .from('users')
       .update({
         tokens_used_this_period: newTokensUsed
       })
       .eq('id', userId)
+
+    if (updateError) {
+      console.error('❌ TOKEN UPDATE ERROR:', updateError)
+    } else {
+      console.log(`✅ TOKEN UPDATE SUCCESS: User ${userId} now has ${newTokensUsed} tokens used`)
+    }
 
     if (updateError) {
       console.error('Error updating token usage:', updateError)
@@ -201,23 +180,7 @@ export async function consumeUserTokens(
 /**
  * Reset user's token period (admin function)
  */
-export async function resetUserTokenPeriod(userId: string): Promise<boolean> {
-  try {
-    const supabase = getSupabaseAdmin()
-    const { error } = await supabase
-      .rpc('reset_user_tokens_if_needed', { user_uuid: userId })
 
-    if (error) {
-      console.error('Error resetting token period:', error)
-      return false
-    }
-
-    return true
-  } catch (error) {
-    console.error('Error in resetUserTokenPeriod:', error)
-    return false
-  }
-}
 
 /**
  * Get user's token usage history
@@ -268,13 +231,3 @@ export function getTokenUsageColor(percentage: number): string {
   return 'text-green-600'
 }
 
-/**
- * Calculate days remaining in current period
- */
-export function getDaysRemainingInPeriod(periodEnd: string): number {
-  const endDate = new Date(periodEnd)
-  const now = new Date()
-  const diffTime = endDate.getTime() - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return Math.max(0, diffDays)
-}

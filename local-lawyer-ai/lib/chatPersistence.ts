@@ -201,24 +201,7 @@ export function generateConversationTitle(firstMessage: string): string {
   return title || 'New Conversation'
 }
 
-// Check and reset expired token periods for all users
-export async function checkAndResetExpiredPeriods(): Promise<number> {
-  try {
-    const supabase = getSupabaseAdmin()
-    
-    const { data, error } = await supabase.rpc('check_and_reset_expired_periods')
 
-    if (error) {
-      console.error('Error checking/resetting expired periods:', error)
-      throw new Error('Failed to check/reset expired periods')
-    }
-
-    return data || 0
-  } catch (error) {
-    console.error('checkAndResetExpiredPeriods error:', error)
-    throw error
-  }
-}
 
 // Save a complete chat exchange (user message + assistant response)
 export async function saveChatExchange(

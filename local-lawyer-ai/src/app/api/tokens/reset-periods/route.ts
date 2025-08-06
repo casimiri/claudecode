@@ -14,11 +14,10 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseAdmin()
     
-    // Get all active users
+    // Get all users
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, email, subscription_plan')
-      .eq('subscription_status', 'active')
+      .select('id, email')
     
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -45,7 +44,6 @@ export async function POST(request: NextRequest) {
         resetResults.push({
           user_id: user.id,
           email: user.email,
-          plan_type: user.subscription_plan,
           was_reset: wasReset,
           error: resetError?.message
         })
@@ -53,7 +51,6 @@ export async function POST(request: NextRequest) {
         resetResults.push({
           user_id: user.id,
           email: user.email,
-          plan_type: user.subscription_plan,
           was_reset: false,
           error: err.message
         })
@@ -86,11 +83,10 @@ export async function GET() {
     // Use the same logic as POST but without auth check
     const supabase = getSupabaseAdmin()
     
-    // Get all active users
+    // Get all users
     const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('id, email, subscription_plan')
-      .eq('subscription_status', 'active')
+      .select('id, email')
     
     if (usersError) {
       console.error('Error fetching users:', usersError)
@@ -117,7 +113,6 @@ export async function GET() {
         resetResults.push({
           user_id: user.id,
           email: user.email,
-          plan_type: user.subscription_plan,
           was_reset: wasReset,
           error: resetError?.message
         })
@@ -125,7 +120,6 @@ export async function GET() {
         resetResults.push({
           user_id: user.id,
           email: user.email,
-          plan_type: user.subscription_plan,
           was_reset: false,
           error: err.message
         })

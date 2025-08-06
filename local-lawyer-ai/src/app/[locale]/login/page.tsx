@@ -1,15 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signInWithGoogle, signInWithFacebook } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
 import { Chrome, Facebook } from 'lucide-react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
   const params = useParams()
-  const locale = params.locale as string
+  const searchParams = useSearchParams()
+  const locale = params?.locale as string
   const [loading, setLoading] = useState(false)
+
+  // Show error messages from OAuth failures
+  useEffect(() => {
+    const error = searchParams?.get('error')
+    const message = searchParams?.get('message')
+    
+    if (error === 'oauth_failed' && message) {
+      toast.error(`Sign in failed: ${decodeURIComponent(message)}`)
+    }
+  }, [searchParams])
 
   const handleGoogleSignIn = async () => {
     try {

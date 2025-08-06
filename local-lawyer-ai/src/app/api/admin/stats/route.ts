@@ -26,19 +26,28 @@ export async function GET(request: NextRequest) {
 
     const [
       { count: totalUsers },
-      { count: activeSubscriptions },
       { count: totalDocuments },
       { count: processedDocuments }
     ] = await Promise.all([
       supabaseAdmin.from('users').select('*', { count: 'exact', head: true }),
-      supabaseAdmin.from('users').select('*', { count: 'exact', head: true }).eq('subscription_status', 'active'),
       supabaseAdmin.from('legal_documents').select('*', { count: 'exact', head: true }),
       supabaseAdmin.from('legal_documents').select('*', { count: 'exact', head: true }).eq('processed', true)
     ])
 
+    // Get token usage stats
+    const { data: tokenStats } = await supabaseAdmin
+      .from('users')
+      .select('total_tokens_purchased, tokens_used_this_period, tokens_limit')
+
+    const totalTokensSold = tokenStats?.reduce((sum: number, user: any) => sum + ((user.total_tokens_purchased || user.tokens_limit) || 0), 0) || 0
+    const totalTokensUsed = tokenStats?.reduce((sum: number, user: any) => sum + (user.tokens_used_this_period || 0), 0) || 0
+    const usersWithTokens = tokenStats?.filter((user: any) => ((user.total_tokens_purchased || user.tokens_limit) || 0) > 0).length || 0
+
     const stats = {
       totalUsers: totalUsers || 0,
-      activeSubscriptions: activeSubscriptions || 0,
+      usersWithTokens: usersWithTokens,
+      totalTokensSold: totalTokensSold,
+      totalTokensUsed: totalTokensUsed,
       totalDocuments: totalDocuments || 0,
       processedDocuments: processedDocuments || 0,
     }

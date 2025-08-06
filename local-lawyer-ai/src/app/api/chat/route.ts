@@ -7,12 +7,24 @@ import { createConversation, saveChatExchange, generateConversationTitle } from 
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory, conversationId } = await request.json()
+    console.log('CHAT API: Starting request processing');
+
+    let message, conversationHistory, conversationId;
+    try {
+      const body = await request.json();
+      console.log('CHAT API: Request body parsed:', body);
+      ({ message, conversationHistory, conversationId } = body);
+    } catch (error) {
+      console.error('CHAT API: Error parsing request body:', error);
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
     if (!message || typeof message !== 'string') {
+      console.log('CHAT API: Message is missing or not a string');
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
+    console.log('CHAT API: Creating Supabase client');
     const cookieStore = await cookies()
     
     const supabase = createServerClient(
@@ -33,7 +45,7 @@ export async function POST(request: NextRequest) {
       }
     )
     
-    // Get the current user
+    console.log('CHAT API: Getting user from Supabase');
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     console.log('Chat API auth result:', { 
@@ -44,58 +56,49 @@ export async function POST(request: NextRequest) {
     })
     
     if (authError || !user) {
-      console.log('Auth failed in chat API:', authError)
+      console.error('CHAT API: Auth failed:', authError);
       return NextResponse.json({ 
         error: 'Unauthorized', 
         details: authError?.message || 'No user found' 
       }, { status: 401 })
     }
 
-    // Check if user has active subscription
+    console.log(`CHAT API: User ${user.id} authenticated. Checking token balance.`);
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('subscription_status, subscription_plan')
+      .select('id')
       .eq('id', user.id)
       .single()
 
     console.log('User data query result:', { userData, userError, userId: user.id })
 
     if (userError || !userData) {
-      console.log('User not found or error:', userError)
+      console.error(`CHAT API: User ${user.id} not found in database:`, userError);
       return NextResponse.json({ 
         error: 'User profile not found. Please complete your registration.',
         code: 'USER_NOT_FOUND'
       }, { status: 404 })
     }
 
-    if (userData.subscription_status !== 'active') {
-      console.log('User subscription not active:', userData.subscription_status)
-      return NextResponse.json({ 
-        error: 'Active subscription required',
-        code: 'SUBSCRIPTION_REQUIRED'
-      }, { status: 403 })
-    }
-
-    // Estimate tokens needed for this request
+    console.log(`CHAT API: User ${user.id} found. Estimating tokens.`);
     const estimatedTokens = estimateTokens.chatMessage(message)
     
-    // Check if user has enough tokens (only for free plan)
-    if (userData.subscription_plan === 'free') {
-      const canConsume = await canUserConsumeTokens(user.id, estimatedTokens)
-      
-      if (!canConsume) {
-        return NextResponse.json({ 
-          error: 'Token limit exceeded', 
-          code: 'TOKEN_LIMIT_EXCEEDED',
-          message: 'You have reached your monthly token limit. Please upgrade to continue using the service.'
-        }, { status: 429 })
-      }
+    console.log(`CHAT API: User ${user.id} checking token balance.`);
+    const canConsume = await canUserConsumeTokens(user.id, estimatedTokens)
+    
+    if (!canConsume) {
+      console.log(`CHAT API: User ${user.id} has insufficient tokens.`);
+      return NextResponse.json({ 
+        error: 'Insufficient tokens', 
+        code: 'TOKEN_LIMIT_EXCEEDED',
+        message: 'You have insufficient tokens to continue. Please purchase more tokens to use the service.'
+      }, { status: 429 })
     }
 
-    // Create embedding for the user's message
+    console.log(`CHAT API: Creating embedding for message.`);
     const embedding = await createEmbedding(message)
 
-    // Search for relevant document chunks using vector similarity
+    console.log(`CHAT API: Searching for relevant document chunks.`);
     const { data: relevantChunks, error: searchError } = await supabase.rpc(
       'search_document_chunks',
       {
@@ -106,33 +109,32 @@ export async function POST(request: NextRequest) {
     )
 
     if (searchError) {
-      console.error('Error searching document chunks:', searchError)
-      // Continue without context if search fails
+      console.error('CHAT API: Error searching document chunks:', searchError)
     }
 
-    // Extract context from relevant chunks
     const context = relevantChunks?.map((chunk: any) => chunk.content) || []
+    console.log(`CHAT API: Found ${context.length} relevant chunks.`);
 
-    // Generate response using OpenAI with conversation history
+    console.log(`CHAT API: Generating chat response from OpenAI.`);
     const chatResponse = await generateChatResponse(
       message, 
       context, 
       conversationHistory || []
     )
 
-    // Use actual tokens from OpenAI response instead of estimation
     const actualTokensUsed = chatResponse.usage?.total_tokens || estimatedTokens
+    console.log(`CHAT API: OpenAI response generated. Tokens used: ${actualTokensUsed}`);
 
-    // Handle conversation persistence
     let currentConversationId = conversationId
     
-    // Create new conversation if none provided (first message)
     if (!currentConversationId) {
+      console.log(`CHAT API: No conversation ID provided. Creating new conversation.`);
       const conversationTitle = generateConversationTitle(message)
       currentConversationId = await createConversation(user.id, conversationTitle)
+      console.log(`CHAT API: Created new conversation with ID: ${currentConversationId}`);
     }
 
-    // Save the chat exchange to database
+    console.log(`CHAT API: Saving chat exchange to database for conversation ${currentConversationId}.`);
     try {
       await saveChatExchange(
         currentConversationId,
@@ -151,52 +153,44 @@ export async function POST(request: NextRequest) {
           })) || []
         }
       )
+      console.log(`CHAT API: Chat exchange saved successfully.`);
     } catch (persistenceError) {
-      console.error('Failed to save chat to database:', persistenceError)
-      // Continue with response even if persistence fails
+      console.error('CHAT API: Failed to save chat to database:', persistenceError)
     }
 
-    // Consume tokens for free plan users after successful response
-    if (userData.subscription_plan === 'free') {
-      const tokenConsumption = await consumeUserTokens(
-        user.id, 
-        actualTokensUsed, 
-        'chat',
-        { 
-          message: message.substring(0, 100), // First 100 chars for logging
-          sources: relevantChunks?.length || 0,
-          response_length: chatResponse.content.length,
-          prompt_tokens: chatResponse.usage?.prompt_tokens || 0,
-          completion_tokens: chatResponse.usage?.completion_tokens || 0,
-          total_tokens: chatResponse.usage?.total_tokens || 0,
-          conversation_id: currentConversationId
-        }
-      )
-      
-      if (!tokenConsumption.success) {
-        console.error('Failed to consume tokens after successful response:', tokenConsumption.error)
-      }
-
-      return NextResponse.json({ 
-        response: chatResponse.content,
+    console.log(`CHAT API: Consuming tokens for user ${user.id}.`);
+    const tokenConsumption = await consumeUserTokens(
+      user.id, 
+      actualTokensUsed, 
+      'chat',
+      { 
+        message: message.substring(0, 100),
         sources: relevantChunks?.length || 0,
-        tokensUsed: actualTokensUsed,
-        tokensRemaining: tokenConsumption.tokensRemaining,
-        usage: chatResponse.usage,
-        conversationId: currentConversationId
-      })
+        response_length: chatResponse.content.length,
+        prompt_tokens: chatResponse.usage?.prompt_tokens || 0,
+        completion_tokens: chatResponse.usage?.completion_tokens || 0,
+        total_tokens: chatResponse.usage?.total_tokens || 0,
+        conversation_id: currentConversationId
+      }
+    )
+    
+    if (!tokenConsumption.success) {
+      console.error(`CHAT API: Failed to consume tokens for user ${user.id}:`, tokenConsumption.error)
     }
 
+    console.log(`CHAT API: Returning response for user ${user.id}.`);
     return NextResponse.json({ 
       response: chatResponse.content,
       sources: relevantChunks?.length || 0,
+      tokensUsed: actualTokensUsed,
+      tokensRemaining: tokenConsumption.tokensRemaining,
       usage: chatResponse.usage,
       conversationId: currentConversationId
     })
   } catch (error: any) {
-    console.error('Chat API error:', error)
+    console.error('CHAT API: Unhandled error in chat API:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     )
   }

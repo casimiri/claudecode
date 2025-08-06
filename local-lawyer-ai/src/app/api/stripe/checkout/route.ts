@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { createCheckoutSession, createCustomer, PRICE_IDS } from '../../../../../lib/stripe'
+import { createCheckoutSession } from '../../../../../lib/stripe'
 import { getSupabaseAdmin } from '../../../../../lib/supabase'
 
 export async function POST(request: NextRequest) {
   try {
-    const { plan } = await request.json()
+    const { priceId, tokens, packageName } = await request.json()
     
-    if (!plan || !PRICE_IDS[plan as keyof typeof PRICE_IDS]) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
+    if (!priceId || !tokens || !packageName) {
+      return NextResponse.json({ error: 'Missing required parameters: priceId, tokens, packageName' }, { status: 400 })
     }
 
     const cookieStore = await cookies()
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     let userData = initialUserData
 
-    // If user not found, create them with default free plan
+    // If user not found, create them
     if (userError && userError.code === 'PGRST116') {
       const supabaseAdmin = getSupabaseAdmin()
       
@@ -60,12 +60,6 @@ export async function POST(request: NextRequest) {
           avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
           provider: user.app_metadata?.provider || 'google',
           provider_id: user.user_metadata?.provider_id || user.id,
-          subscription_plan: 'free',
-          subscription_status: 'active',
-          tokens_used_this_period: 0,
-          tokens_limit: 10000,
-          period_start_date: new Date().toISOString(),
-          period_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         })
 
       if (createError) {
@@ -96,45 +90,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    let customerId = userData.stripe_customer_id || userData.customer_id
-
-    // Create Stripe customer if doesn't exist
-    if (!customerId) {
-      const customer = await createCustomer({
-        email: userData.email,
-        name: userData.full_name || undefined,
-        metadata: {
-          userId: userData.id,
-        },
-      })
-
-      customerId = customer.id
-
-      // Update user with customer ID (support both old and new column names)
-      await supabase
-        .from('users')
-        .update({ 
-          stripe_customer_id: customerId,
-          customer_id: customerId 
-        })
-        .eq('id', userData.id)
-    }
-
-    const priceId = PRICE_IDS[plan as keyof typeof PRICE_IDS]
-    
-    // Extract locale from URL for proper redirect
-    const urlParts = request.nextUrl.pathname.split('/')
-    const locale = urlParts[1] || 'en'
+    // Use Codespaces URL if in Codespaces environment, otherwise use request origin
+    const baseUrl = process.env.CODESPACES === 'true' 
+      ? `https://${process.env.CODESPACE_NAME}-3000.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`
+      : request.nextUrl.origin
     
     const checkoutSession = await createCheckoutSession({
       priceId,
-      customerId,
-      successUrl: `${request.nextUrl.origin}/${locale}/subscription?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${request.nextUrl.origin}/${locale}/subscription?canceled=true`,
+      customerId: userData.customer_id, // Pass existing customer_id if available
+      successUrl: `${baseUrl}/buy-tokens?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${baseUrl}/buy-tokens?canceled=true`,
       metadata: {
         userId: userData.id,
-        plan,
+        tokens: tokens.toString(),
+        packageName,
       },
+      mode: 'payment',
     })
 
     return NextResponse.json({ 

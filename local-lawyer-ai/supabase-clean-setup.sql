@@ -12,9 +12,7 @@ DROP POLICY IF EXISTS "Users can view own profile" ON public.users;
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 DROP POLICY IF EXISTS "Admins can view admin data" ON public.admins;
 DROP POLICY IF EXISTS "Users with active subscription can view documents" ON public.legal_documents;
-DROP POLICY IF EXISTS "Only admins can modify documents" ON public.legal_documents;
 DROP POLICY IF EXISTS "Users with active subscription can view chunks" ON public.document_chunks;
-DROP POLICY IF EXISTS "Only admins can modify chunks" ON public.document_chunks;
 
 -- Drop existing functions
 DROP FUNCTION IF EXISTS public.handle_new_user();
@@ -33,11 +31,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   avatar_url TEXT,
   provider TEXT NOT NULL DEFAULT 'email',
   provider_id TEXT NOT NULL,
-  subscription_status TEXT NOT NULL DEFAULT 'inactive' CHECK (subscription_status IN ('inactive', 'active', 'canceled', 'past_due')),
-  subscription_plan TEXT CHECK (subscription_plan IN ('weekly', 'monthly', 'yearly')),
-  subscription_id TEXT,
-  customer_id TEXT,
-  current_period_end TIMESTAMPTZ,
+  tokens_used_this_period BIGINT NOT NULL DEFAULT 0,
+  tokens_limit BIGINT NOT NULL DEFAULT 0,
+  last_token_purchase_date TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -79,7 +75,7 @@ CREATE TABLE IF NOT EXISTS public.document_chunks (
 
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
-CREATE INDEX IF NOT EXISTS idx_users_subscription_status ON public.users(subscription_status);
+
 CREATE INDEX IF NOT EXISTS idx_legal_documents_is_current ON public.legal_documents(is_current);
 CREATE INDEX IF NOT EXISTS idx_legal_documents_processed ON public.legal_documents(processed);
 CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON public.document_chunks(document_id);
@@ -104,13 +100,12 @@ CREATE POLICY "Admins can view admin data" ON public.admins
   USING (EXISTS (SELECT 1 FROM public.admins WHERE email = auth.email()));
 
 -- Legal documents are viewable by authenticated users with active subscriptions
-CREATE POLICY "Users with active subscription can view documents" ON public.legal_documents
+CREATE POLICY "Users can view documents" ON public.legal_documents
   FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.users 
-      WHERE id = auth.uid() 
-      AND subscription_status = 'active'
+      WHERE id = auth.uid()
     )
   );
 
@@ -125,13 +120,12 @@ CREATE POLICY "Only admins can modify documents" ON public.legal_documents
   );
 
 -- Document chunks follow same rules as legal documents
-CREATE POLICY "Users with active subscription can view chunks" ON public.document_chunks
+CREATE POLICY "Users can view chunks" ON public.document_chunks
   FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.users 
-      WHERE id = auth.uid() 
-      AND subscription_status = 'active'
+      WHERE id = auth.uid()
     )
   );
 

@@ -6,8 +6,15 @@ type Props = {
   params: Promise<{locale: string}>;
 };
 
-export default async function HomePage({ params }: Props) {
+export default async function HomePage({ params, searchParams }: Props & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const { locale } = await params;
+  const urlParams = await searchParams;
+  
+  // Check for authentication errors
+  if (urlParams.error === 'auth_failed') {
+    // You could show an error message here or redirect to login with error
+    console.log('Authentication failed, redirecting to login');
+  }
   
   const translations = {
     en: {

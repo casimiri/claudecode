@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
     
     if (error) {
       console.error('Error exchanging code for session:', error)
-      return NextResponse.redirect(new URL('/?error=auth_failed', request.url))
+      console.error('Full error details:', JSON.stringify(error, null, 2))
+      
+      // For development, redirect to login page with error message
+      const locale = requestUrl.searchParams.get('locale') || 'en'
+      return NextResponse.redirect(new URL(`/${locale}/login?error=oauth_failed&message=${encodeURIComponent(error.message)}`, request.url))
     }
 
     if (data.user) {
@@ -42,7 +46,7 @@ export async function GET(request: NextRequest) {
       // Check if user already exists
       const { data: existingUser, error: checkError } = await supabaseAdmin
         .from('users')
-        .select('id, tokens_used_this_period, tokens_limit, period_start_date, period_end_date, subscription_plan, subscription_status')
+        .select('id, tokens_used_this_period, total_tokens_purchased')
         .eq('id', data.user.id)
         .single()
 
@@ -54,22 +58,24 @@ export async function GET(request: NextRequest) {
       let upsertError = null
 
       if (existingUser) {
-        // User exists - only update profile fields, preserve token usage and subscription data
+        // User exists - update profile fields only
+        const updateData: any = {
+          email: data.user.email!,
+          full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
+          provider: data.user.app_metadata?.provider || 'google',
+          provider_id: data.user.user_metadata?.provider_id || data.user.id,
+          updated_at: new Date().toISOString()
+        }
+
         const { error } = await supabaseAdmin
           .from('users')
-          .update({
-            email: data.user.email!,
-            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-            avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
-            provider: data.user.app_metadata?.provider || 'google',
-            provider_id: data.user.user_metadata?.provider_id || data.user.id,
-            updated_at: new Date().toISOString()
-          })
+          .update(updateData)
           .eq('id', data.user.id)
         
         upsertError = error
       } else {
-        // New user - create with default token allocation
+        // New user - create with default token allocation (handled by database trigger)
         const { error } = await supabaseAdmin
           .from('users')
           .insert({
@@ -78,13 +84,7 @@ export async function GET(request: NextRequest) {
             full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
             avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
             provider: data.user.app_metadata?.provider || 'google',
-            provider_id: data.user.user_metadata?.provider_id || data.user.id,
-            subscription_plan: 'free',
-            subscription_status: 'active',
-            tokens_used_this_period: 0,
-            tokens_limit: 10000,
-            period_start_date: new Date().toISOString(),
-            period_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+            provider_id: data.user.user_metadata?.provider_id || data.user.id
           })
         
         upsertError = error

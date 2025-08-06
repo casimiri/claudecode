@@ -4,11 +4,7 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-06-30.basil',
 })
 
-export const PRICE_IDS = {
-  weekly: process.env.STRIPE_WEEKLY_PRICE_ID!,
-  monthly: process.env.STRIPE_MONTHLY_PRICE_ID!,
-  yearly: process.env.STRIPE_YEARLY_PRICE_ID!,
-}
+
 
 export const createCheckoutSession = async ({
   priceId,
@@ -16,15 +12,17 @@ export const createCheckoutSession = async ({
   successUrl,
   cancelUrl,
   metadata = {},
+  mode = 'subscription',
 }: {
   priceId: string
   customerId?: string
   successUrl: string
   cancelUrl: string
   metadata?: Record<string, string>
+  mode?: 'subscription' | 'payment'
 }) => {
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
+  const sessionData: any = {
+    mode,
     payment_method_types: ['card'],
     line_items: [
       {
@@ -36,10 +34,16 @@ export const createCheckoutSession = async ({
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata,
-    subscription_data: {
+  }
+
+  // Only add subscription_data for subscription mode
+  if (mode === 'subscription') {
+    sessionData.subscription_data = {
       metadata,
-    },
-  })
+    }
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionData)
 
   return session
 }
@@ -80,3 +84,4 @@ export const createPortalSession = async ({
 
   return session
 }
+

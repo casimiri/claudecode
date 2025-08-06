@@ -17,7 +17,9 @@ interface Document {
 
 interface Stats {
   totalUsers: number
-  activeSubscriptions: number
+  usersWithTokens: number
+  totalTokensSold: number
+  totalTokensUsed: number
   totalDocuments: number
   processedDocuments: number
 }
@@ -148,8 +150,28 @@ export default function AdminDashboardPage() {
               <div className="flex items-center">
                 <CheckCircle className="h-8 w-8 text-green-600" />
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Active Subscriptions</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.activeSubscriptions}</p>
+                  <p className="text-sm font-medium text-gray-500">Users with Tokens</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.usersWithTokens}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-yellow-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total Tokens Sold</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalTokensSold?.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total Tokens Used</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.totalTokensUsed?.toLocaleString()}</p>
                 </div>
               </div>
             </div>
