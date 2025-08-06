@@ -40,12 +40,12 @@ export default async function HomePage({ params, searchParams }: Props & { searc
         }
       },
       pricing: {
-        title: "Flexible Pricing Plans",
-        subtitle: "Choose the plan that works best for your legal needs",
-        free: "Free",
-        weekly: "Weekly",
-        monthly: "Monthly (Popular)",
-        yearly: "Yearly"
+        title: "One time tokens purchase",
+        subtitle: "Choose the token package that works best for your needs",
+        free: "Starter Pack",
+        weekly: "Popular",
+        monthly: "Power",
+        yearly: "Enterprise Pack"
       },
       footer: { copyright: "© 2024 Local Lawyer AI. All rights reserved." }
     },
@@ -72,12 +72,12 @@ export default async function HomePage({ params, searchParams }: Props & { searc
         }
       },
       pricing: {
-        title: "Plans tarifaires flexibles",
-        subtitle: "Choisissez le plan qui convient le mieux à vos besoins juridiques",
-        free: "Gratuit",
-        weekly: "Hebdomadaire",
-        monthly: "Mensuel (Populaire)",
-        yearly: "Annuel"
+        title: "Achat de jetons unique",
+        subtitle: "Choisissez le package de jetons qui convient le mieux à vos besoins",
+        free: "Pack Débutant",
+        weekly: "Populaire",
+        monthly: "Puissance",
+        yearly: "Pack Enterprise"
       },
       footer: { copyright: "© 2024 Local Lawyer AI. Tous droits réservés." }
     }
