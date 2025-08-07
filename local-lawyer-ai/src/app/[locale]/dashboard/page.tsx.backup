@@ -1,0 +1,538 @@
+'use client'
+
+import { useEffect, useState, useRef } from 'react'
+import { supabase } from '../../../../lib/supabase'
+import { getCurrentUser } from '../../../../lib/auth'
+import { User } from '@supabase/supabase-js'
+import { Scale, MessageCircle, Settings, LogOut, Zap, Gift, ChevronDown, User as UserIcon, TrendingUp, Activity, Calendar, CreditCard } from 'lucide-react'
+import Link from 'next/link'
+import { signOut } from '../../../../lib/auth'
+import toast from 'react-hot-toast'
+import { useParams } from 'next/navigation'
+
+interface UserProfile {
+  id: string
+  email: string
+  full_name: string | null
+  tokens_used_this_period?: number
+  tokens_limit?: number
+  total_tokens_purchased?: number
+  free_starter_claimed?: boolean
+  tokens_purchase_history?: Array<{
+    date: string
+    tokens: number
+    package_name: string
+    stripe_session_id?: string
+    amount?: number
+    currency?: string
+    payment_method?: string
+  }>
+}
+
+interface TokenUsageStats {
+  tokensUsed: number
+  tokensLimit: number
+  tokensRemaining: number
+  periodStart: string
+  periodEnd: string
+  planType: string
+  usagePercentage: number
+}
+
+export default function DashboardPage() {
+  const params = useParams()
+  const locale = params?.locale as string
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [tokenStats, setTokenStats] = useState<TokenUsageStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [claimingFreeTokens, setClaimingFreeTokens] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+
+  const fetchUser = async () => {
+    try {
+      const currentUser = await getCurrentUser()
+      if (currentUser) {
+        setUser(currentUser)
+        
+        // Fetch user profile
+        const { data: userProfile, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (error) {
+          console.error('Error fetching profile:', error)
+        } else {
+          setProfile(userProfile)
+          
+          // Fetch token usage stats for all users
+          try {
+            const response = await fetch('/api/tokens/usage')
+            if (response.ok) {
+              const { data } = await response.json()
+              setTokenStats(data)
+            }
+          } catch (error) {
+            console.error('Error fetching token stats:', error)
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUser()
+  }, [])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      window.location.href = '/'
+    } catch {
+      toast.error('Failed to sign out')
+    }
+  }
+
+  const claimFreeTokens = async () => {
+    try {
+      setClaimingFreeTokens(true)
+      
+      const response = await fetch('/api/tokens/claim-free', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success(data.message)
+        // Refresh user data to update token display
+        await fetchUser()
+      } else {
+        toast.error(data.error || 'Failed to claim free tokens')
+      }
+    } catch (error) {
+      console.error('Error claiming free tokens:', error)
+      toast.error('Failed to claim free tokens')
+    } finally {
+      setClaimingFreeTokens(false)
+    }
+  }
+
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+          <div className="text-gray-600 font-medium">Loading your dashboard...</div>
+          <div className="text-sm text-gray-500 mt-2">Please wait a moment</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user || !profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-12 max-w-md mx-4">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Scale className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Access Denied</h1>
+          <p className="text-gray-600 mb-6">Please sign in to access your dashboard.</p>
+          <Link href={`/${locale}/login`} className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob animation-delay-4000"></div>
+      </div>
+
+      {/* Header */}
+      <header className="relative z-10 bg-white/80 backdrop-blur-sm shadow-sm border-b border-white/20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <Link href={`/${locale}`} className="flex items-center group">
+              <Scale className="h-8 w-8 text-blue-600" />
+              <span className="ml-2 text-xl font-bold text-gray-900">Local Lawyer AI</span>
+            </Link>
+            <div className="flex items-center space-x-4">
+              {/* User Menu Dropdown */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center bg-white/60 backdrop-blur-sm border border-white/30 rounded-xl px-4 py-2 text-gray-700 hover:text-gray-900 hover:bg-white/80 focus:outline-none transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mr-3">
+                    <UserIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="font-medium">{profile.full_name || profile.email}</span>
+                  <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl py-2 z-50 border border-white/20">
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="text-sm font-medium text-gray-900">
+                        {profile.full_name || 'User'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {profile.email}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Member since {new Date(user.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/${locale}/dashboard/profile`}
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-white/60 rounded-xl mx-2 transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 mr-3" />
+                      Account Settings
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 hover:bg-white/60 rounded-xl mx-2 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-3" />
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {profile && (profile.total_tokens_purchased || 0) > 0 ? (
+                <Link
+                  href={`/${locale}/chat`}
+                  className="inline-flex items-center bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Start Chatting
+                </Link>
+              ) : (
+                <Link
+                  href={`/${locale}/buy-tokens`}
+                  className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Buy Tokens
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {profile.full_name || 'User'}!</h1>
+          <p className="text-gray-600">Manage your tokens and access your AI legal assistant.</p>
+        </div>
+
+        {/* Token Balance */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
+          <div className="flex items-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-2xl flex items-center justify-center mr-4">
+              <Zap className="h-6 w-6 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900">Token Balance</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Zap className="h-4 w-4 text-white" />
+                </div>
+                <TrendingUp className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="text-2xl font-bold text-blue-900 mb-1">
+                {tokenStats ? tokenStats.tokensRemaining.toLocaleString() : '---'}
+              </div>
+              <p className="text-sm text-blue-700">Available Tokens</p>
+              <p className="text-xs text-blue-600 mt-1">Ready for AI conversations</p>
+            </div>
+
+            <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-2xl p-6 border border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <CreditCard className="h-4 w-4 text-white" />
+                </div>
+                <Activity className="h-5 w-5 text-green-600" />
+              </div>
+              <div className="text-2xl font-bold text-green-900 mb-1">
+                {profile ? (profile.total_tokens_purchased || 0).toLocaleString() : '---'}
+              </div>
+              <p className="text-sm text-green-700">Total Purchased</p>
+              <p className="text-xs text-green-600 mt-1">Tokens never expire</p>
+            </div>
+
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl p-6 border border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <Calendar className="h-4 w-4 text-white" />
+                </div>
+                <UserIcon className="h-5 w-5 text-purple-600" />
+              </div>
+              <div className="text-2xl font-bold text-purple-900 mb-1">
+                {tokenStats ? tokenStats.tokensUsed.toLocaleString() : '---'}
+              </div>
+              <p className="text-sm text-purple-700">Tokens Used</p>
+              <p className="text-xs text-purple-600 mt-1">This period</p>
+            </div>
+          </div>
+          <div className="flex justify-center">
+            <Link
+              href={`/${locale}/buy-tokens`}
+              className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <Zap className="w-5 h-5 mr-2" />
+              Buy More Tokens
+            </Link>
+          </div>
+          </div>
+
+        </div>
+
+        {/* AI Legal Assistant Section */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8">
+          <div className="flex items-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mr-4">
+              <MessageCircle className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900">AI Legal Assistant</h3>
+              <p className="text-gray-600">Get instant answers to your legal questions</p>
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6 mb-6">
+            <p className="text-gray-700 mb-4 leading-relaxed">
+              Our AI-powered assistant is trained on up-to-date local law documents and regulations. 
+              Get immediate, accurate answers to complex legal questions with source citations.
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center text-gray-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                Instant responses
+              </div>
+              <div className="flex items-center text-gray-600">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                Source citations
+              </div>
+              <div className="flex items-center text-gray-600">
+                <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                Up-to-date laws
+              </div>
+            </div>
+          </div>
+
+          {profile && (profile.total_tokens_purchased || 0) > 0 ? (
+            <Link 
+              href={`/${locale}/chat`}
+              className="inline-flex items-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl text-lg font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Start AI Conversation
+            </Link>
+          ) : (
+            <div className="text-center bg-orange-50 border border-orange-200 rounded-2xl p-6">
+              <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Zap className="h-6 w-6 text-white" />
+              </div>
+              <h4 className="text-lg font-semibold text-orange-900 mb-2">Tokens Required</h4>
+              <p className="text-orange-700 mb-4">Purchase tokens to unlock AI legal assistance</p>
+              <Link 
+                href={`/${locale}/buy-tokens`}
+                className="inline-flex items-center bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Buy Tokens Now
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* Free Starter Kit */}
+        {profile && profile.free_starter_claimed !== true && (
+          <div className="bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 border-2 border-green-300 rounded-3xl shadow-xl p-8 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-200 rounded-full -translate-y-16 translate-x-16 opacity-50"></div>
+            <div className="relative z-10">
+              <div className="flex items-center mb-6">
+                <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mr-4">
+                  <Gift className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-green-900 mb-1">🎉 Free Starter Kit!</h2>
+                  <p className="text-green-700">Welcome bonus for new users</p>
+                </div>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-6 items-center">
+                <div>
+                  <div className="bg-white/60 rounded-2xl p-6 mb-4">
+                    <h3 className="text-lg font-bold text-green-900 mb-3">What you get:</h3>
+                    <ul className="space-y-2 text-green-800">
+                      <li className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        10,000 free tokens
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        Immediate access to AI chat
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        Tokens never expire
+                      </li>
+                      <li className="flex items-center">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                        One-time offer
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="text-center md:text-right">
+                  <button
+                    onClick={claimFreeTokens}
+                    disabled={claimingFreeTokens}
+                    className="inline-flex items-center bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 disabled:from-green-400 disabled:to-emerald-400 text-white px-8 py-4 rounded-2xl text-xl font-bold transition-all duration-200 shadow-lg hover:shadow-2xl transform hover:scale-105 disabled:transform-none"
+                  >
+                    {claimingFreeTokens ? (
+                      <>
+                        <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent mr-3"></div>
+                        Claiming...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="w-6 h-6 mr-3" />
+                        Claim Free Tokens
+                      </>
+                    )}
+                  </button>
+                  <p className="text-sm text-green-600 mt-2">No credit card required</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Token Usage is now integrated into the main Token Balance cards above */}
+
+
+        {/* Recent Activity - Token Purchase History */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+          <div className="flex items-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mr-4">
+              <Activity className="h-6 w-6 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900">Recent Activity</h3>
+          </div>
+          
+          {profile?.tokens_purchase_history && profile.tokens_purchase_history.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {profile.tokens_purchase_history
+                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                .slice(0, 6)
+                .map((purchase, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <Zap className="w-4 h-4 text-blue-600 mr-2" />
+                        <span className="font-semibold text-gray-900">
+                          {purchase.tokens.toLocaleString()} tokens
+                        </span>
+                      </div>
+                      {purchase.amount && (
+                        <span className="text-sm text-gray-600">
+                          ${(purchase.amount).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 mb-1">
+                      {purchase.package_name}
+                    </div>
+                    
+                    <div className="text-xs text-gray-500">
+                      {new Date(purchase.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    
+                    {purchase.payment_method && (
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          purchase.payment_method === 'free' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {purchase.payment_method === 'free' ? 'Free Starter Kit' : 'Card Payment'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Zap className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No token purchases yet</p>
+              <p className="text-sm">Purchase your first token package to get started!</p>
+              <Link 
+                href={`/${locale}/buy-tokens`}
+                className="inline-flex items-center mt-4 px-4 py-2 text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <Zap className="w-4 h-4 mr-1" />
+                Buy Tokens
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

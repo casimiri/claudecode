@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { NextRequest } from 'next/server';
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

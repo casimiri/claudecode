@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
-import { Scale, MessageCircle, Settings, LogOut, Zap, Gift, ChevronDown, User as UserIcon } from 'lucide-react'
+import { Scale, MessageCircle, Settings, LogOut, Zap, Gift, ChevronDown, User as UserIcon, Clock, TrendingUp, Activity, BarChart3, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { signOut } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
@@ -29,6 +29,21 @@ interface UserProfile {
   }>
 }
 
+interface RecentConversation {
+  id: string
+  title: string
+  created_at: string
+  updated_at?: string
+  message_count?: number
+}
+
+interface DashboardStats {
+  totalConversations: number
+  tokensUsedToday: number
+  averageTokensPerConversation: number
+  lastActivityDate: string
+}
+
 interface TokenUsageStats {
   tokensUsed: number
   tokensLimit: number
@@ -45,6 +60,8 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenUsageStats | null>(null)
+  const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([])
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [claimingFreeTokens, setClaimingFreeTokens] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -80,7 +97,7 @@ export default function DashboardPage() {
         } else {
           setProfile(userProfile)
           
-          // Fetch token usage stats for all users
+          // Fetch token usage stats
           try {
             const response = await fetch('/api/tokens/usage')
             if (response.ok) {
@@ -89,6 +106,28 @@ export default function DashboardPage() {
             }
           } catch (error) {
             console.error('Error fetching token stats:', error)
+          }
+
+          // Fetch recent conversations
+          try {
+            const conversationsResponse = await fetch('/api/chat/conversations')
+            if (conversationsResponse.ok) {
+              const { conversations } = await conversationsResponse.json()
+              setRecentConversations(conversations?.slice(0, 5) || [])
+            }
+          } catch (error) {
+            console.error('Error fetching conversations:', error)
+          }
+
+          // Calculate dashboard stats
+          if (userProfile && tokenStats) {
+            const stats: DashboardStats = {
+              totalConversations: recentConversations.length,
+              tokensUsedToday: tokenStats.tokensUsed || 0,
+              averageTokensPerConversation: recentConversations.length > 0 ? Math.round((tokenStats.tokensUsed || 0) / recentConversations.length) : 0,
+              lastActivityDate: new Date().toISOString()
+            }
+            setDashboardStats(stats)
           }
         }
       }
@@ -101,7 +140,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchUser()
-  }, [])
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSignOut = async () => {
     try {
@@ -317,6 +356,257 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Dashboard Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg">
+                <MessageCircle className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Conversations</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {recentConversations.length}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg">
+                <TrendingUp className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Tokens Used Today</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {tokenStats ? tokenStats.tokensUsed.toLocaleString() : '0'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Avg. Tokens/Chat</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {dashboardStats ? dashboardStats.averageTokensPerConversation.toLocaleString() : '0'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center">
+              <div className="flex items-center justify-center w-12 h-12 bg-orange-100 rounded-lg">
+                <Activity className="h-6 w-6 text-orange-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Account Status</p>
+                <p className="text-sm font-bold text-green-600">
+                  {profile && (profile.total_tokens_purchased || 0) > 0 ? 'Active' : 'Free Tier'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions Panel */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+            <Zap className="h-6 w-6 text-blue-600 mr-2" />
+            Quick Actions
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href={`/${locale}/chat`}
+              className={`p-4 rounded-lg border-2 border-dashed transition-colors ${
+                profile && (profile.total_tokens_purchased || 0) > 0
+                  ? 'border-blue-300 hover:border-blue-500 hover:bg-blue-50 cursor-pointer'
+                  : 'border-gray-300 bg-gray-50 cursor-not-allowed'
+              }`}
+            >
+              <div className="flex items-center">
+                <MessageCircle className={`h-8 w-8 mr-3 ${
+                  profile && (profile.total_tokens_purchased || 0) > 0 ? 'text-blue-600' : 'text-gray-400'
+                }`} />
+                <div>
+                  <h3 className={`font-medium ${
+                    profile && (profile.total_tokens_purchased || 0) > 0 ? 'text-gray-900' : 'text-gray-500'
+                  }`}>Start New Chat</h3>
+                  <p className={`text-sm ${
+                    profile && (profile.total_tokens_purchased || 0) > 0 ? 'text-gray-600' : 'text-gray-400'
+                  }`}>Ask legal questions</p>
+                </div>
+              </div>
+            </Link>
+            
+            <Link
+              href={`/${locale}/buy-tokens`}
+              className="p-4 rounded-lg border-2 border-dashed border-purple-300 hover:border-purple-500 hover:bg-purple-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center">
+                <Zap className="h-8 w-8 text-purple-600 mr-3" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Buy Tokens</h3>
+                  <p className="text-sm text-gray-600">Get more AI credits</p>
+                </div>
+              </div>
+            </Link>
+            
+            <Link
+              href={`/${locale}/dashboard/profile`}
+              className="p-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-500 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center">
+                <Settings className="h-8 w-8 text-gray-600 mr-3" />
+                <div>
+                  <h3 className="font-medium text-gray-900">Account Settings</h3>
+                  <p className="text-sm text-gray-600">Manage your profile</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* Recent Conversations */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <Clock className="h-6 w-6 text-blue-600 mr-2" />
+              Recent Conversations
+            </h2>
+            {recentConversations.length > 0 ? (
+              <div className="space-y-3">
+                {recentConversations.map((conversation) => (
+                  <Link
+                    key={conversation.id}
+                    href={`/${locale}/chat?conversation=${conversation.id}`}
+                    className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <FileText className="h-4 w-4 text-gray-400 mr-3" />
+                        <div>
+                          <p className="font-medium text-gray-900 truncate max-w-xs">
+                            {conversation.title || 'Untitled Conversation'}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(conversation.created_at).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-gray-400 transform -rotate-90" />
+                    </div>
+                  </Link>
+                ))}
+                <Link
+                  href={`/${locale}/chat`}
+                  className="block p-3 text-center text-blue-600 hover:text-blue-700 font-medium text-sm rounded-lg hover:bg-blue-50 transition-colors"
+                >
+                  View All Conversations
+                </Link>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-2">No conversations yet</p>
+                <p className="text-sm text-gray-400 mb-4">Start your first legal consultation!</p>
+                {profile && (profile.total_tokens_purchased || 0) > 0 ? (
+                  <Link
+                    href={`/${locale}/chat`}
+                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Start First Chat
+                  </Link>
+                ) : (
+                  <p className="text-sm text-gray-500">Purchase tokens to start chatting</p>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+              <BarChart3 className="h-6 w-6 text-green-600 mr-2" />
+              Usage Analytics
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-700">Token Usage Progress</span>
+                  <span className="text-sm text-gray-500">
+                    {tokenStats ? `${tokenStats.usagePercentage.toFixed(1)}%` : '0%'}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div 
+                    className={`h-3 rounded-full transition-all duration-500 ${
+                      tokenStats && tokenStats.usagePercentage >= 90 
+                        ? 'bg-red-500' 
+                        : tokenStats && tokenStats.usagePercentage >= 75 
+                        ? 'bg-orange-500' 
+                        : 'bg-green-500'
+                    }`}
+                    style={{ width: `${tokenStats ? Math.min(tokenStats.usagePercentage, 100) : 0}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-xs text-gray-500">
+                    {tokenStats ? tokenStats.tokensUsed.toLocaleString() : 0} used
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {tokenStats ? tokenStats.tokensRemaining.toLocaleString() : 0} remaining
+                  </span>
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {profile ? (profile.total_tokens_purchased || 0).toLocaleString() : '0'}
+                    </p>
+                    <p className="text-sm text-gray-600">Total Purchased</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-green-600">
+                      {recentConversations.length}
+                    </p>
+                    <p className="text-sm text-gray-600">Conversations</p>
+                  </div>
+                </div>
+              </div>
+              
+              {tokenStats && tokenStats.tokensRemaining < 1000 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <Zap className="h-5 w-5 text-orange-600" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-orange-800">Low Token Warning</p>
+                      <p className="text-xs text-orange-600 mt-1">
+                        You have {tokenStats.tokensRemaining.toLocaleString()} tokens remaining
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Free Starter Kit */}
         {profile && profile.free_starter_claimed !== true && (
           <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg shadow p-6 mb-8">
@@ -356,68 +646,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Token Usage */}
-        {tokenStats && (
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <Zap className="h-6 w-6 text-yellow-500 mr-2" />
-              AI Token Usage
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">Total Token Usage</span>
-                  <span className="text-sm text-gray-500">
-                    {tokenStats.tokensUsed.toLocaleString()} tokens used
-                  </span>
-                </div>
-                {tokenStats.tokensLimit > 0 && (
-                  <>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${
-                          tokenStats.usagePercentage >= 90 
-                            ? 'bg-red-500' 
-                            : tokenStats.usagePercentage >= 75 
-                            ? 'bg-orange-500' 
-                            : 'bg-blue-500'
-                        }`}
-                        style={{ width: `${Math.min(tokenStats.usagePercentage, 100)}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className={`text-sm font-medium ${
-                        tokenStats.usagePercentage >= 90 
-                          ? 'text-red-600' 
-                          : tokenStats.usagePercentage >= 75 
-                          ? 'text-orange-600' 
-                          : 'text-blue-600'
-                      }`}>
-                        {tokenStats.tokensRemaining.toLocaleString()} tokens remaining
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {profile && (profile.total_tokens_purchased || 0) <= 1000 && (
-                <div className="p-3 rounded-md bg-orange-50 border border-orange-200">
-                  <p className="text-sm text-orange-700">
-                    You&apos;re running low on tokens! Purchase more to continue using AI features.
-                  </p>
-                  <Link 
-                    href={`/${locale}/buy-tokens`}
-                    className="inline-flex items-center mt-2 px-3 py-1 rounded-md text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    <Zap className="w-4 h-4 mr-1" />
-                    Buy More Tokens
-                  </Link>
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
 
 
         {/* Recent Activity - Token Purchase History */}
