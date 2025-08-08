@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, History, Wallet } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Moon, Sun, Menu, X, CreditCard } from 'lucide-react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
@@ -34,6 +34,7 @@ interface TokenStats {
 
 export default function ChatPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const locale = params?.locale as string
   
   const [messages, setMessages] = useState<Message[]>([])
@@ -42,18 +43,51 @@ export default function ChatPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
-  const [showConversations, setShowConversations] = useState(false)
+  const [showSidebar, setShowSidebar] = useState(false) // Start hidden, will be set based on screen size
+  const [loadingConversation, setLoadingConversation] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null)
+  const [darkMode, setDarkMode] = useState(false)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (container) {
+      const handleScrollEvent = () => {
+        const { scrollTop, scrollHeight, clientHeight } = container
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+        setShowScrollToBottom(!isAtBottom && messages.length > 3)
+      }
+      
+      container.addEventListener('scroll', handleScrollEvent)
+      return () => container.removeEventListener('scroll', handleScrollEvent)
+    }
+  }, [messages])
+
+  // Auto-resize textarea
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current
+    if (textarea) {
+      textarea.style.height = 'auto'
+      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
+    }
+  }
+
+  useEffect(() => {
+    adjustTextareaHeight()
+  }, [input])
 
   // Fetch token stats
   const fetchTokenStats = async () => {
@@ -91,6 +125,7 @@ export default function ChatPage() {
 
   // Load messages for a specific conversation
   const loadConversationMessages = async (conversationId: string) => {
+    setLoadingConversation(true)
     try {
       const response = await fetch(`/api/chat/conversations/${conversationId}`, {
         credentials: 'include'
@@ -107,9 +142,27 @@ export default function ChatPage() {
           sources_count: msg.sources_count
         }))
         setMessages(formattedMessages)
+      } else {
+        console.error('Failed to load conversation:', response.statusText)
+        // Show error message to user
+        setMessages([{
+          id: 'error',
+          role: 'assistant',
+          content: 'Sorry, I couldn\'t load this conversation. Please try again.',
+          timestamp: new Date(),
+        }])
       }
     } catch (error) {
       console.error('Failed to load conversation messages:', error)
+      // Show error message to user
+      setMessages([{
+        id: 'error',
+        role: 'assistant',
+        content: 'Sorry, I encountered an error loading this conversation. Please try again.',
+        timestamp: new Date(),
+      }])
+    } finally {
+      setLoadingConversation(false)
     }
   }
 
@@ -128,7 +181,10 @@ export default function ChatPage() {
   const selectConversation = async (conversation: Conversation) => {
     setCurrentConversationId(conversation.id)
     await loadConversationMessages(conversation.id)
-    setShowConversations(false)
+    // Sidebar remains open in desktop, auto-close on mobile
+    if (window.innerWidth < 768) {
+      setShowSidebar(false)
+    }
   }
 
   useEffect(() => {
@@ -153,8 +209,16 @@ export default function ChatPage() {
           fetchTokenStats()
         ])
         
-        // Start with a new conversation
-        startNewConversation()
+        // Check if there's a conversation ID in the URL parameters
+        const conversationId = searchParams?.get('conversation')
+        if (conversationId) {
+          // Load the specific conversation
+          setCurrentConversationId(conversationId)
+          await loadConversationMessages(conversationId)
+        } else {
+          // Start with a new conversation
+          startNewConversation()
+        }
       } catch (error) {
         console.error('Auth check error:', error)
         setAuthChecked(true)
@@ -164,7 +228,7 @@ export default function ChatPage() {
     }
     
     checkAuth()
-  }, [locale])
+  }, [locale, searchParams])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -177,8 +241,8 @@ export default function ChatPage() {
       timestamp: new Date(),
     }
 
-    setMessages(prev => [...prev, userMessage])
     const currentMessages = [...messages, userMessage]
+    setMessages(currentMessages)
     setInput('')
     setLoading(true)
 
@@ -274,6 +338,39 @@ export default function ChatPage() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+
+  // Initialize dark mode from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem('darkMode')
+    if (savedDarkMode !== null) {
+      setDarkMode(JSON.parse(savedDarkMode))
+    }
+  }, [])
+
+  // Initialize sidebar visibility based on screen size
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) { // md breakpoint
+        setShowSidebar(true)
+      } else {
+        setShowSidebar(false)
+      }
+    }
+    
+    // Set initial state
+    handleResize()
+    
+    // Listen for resize events
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const toggleDarkMode = () => {
+    const newDarkMode = !darkMode
+    setDarkMode(newDarkMode)
+    localStorage.setItem('darkMode', JSON.stringify(newDarkMode))
+  }
+
   // Show loading while checking authentication
   if (!authChecked) {
     return (
@@ -294,45 +391,131 @@ export default function ChatPage() {
     )
   }
 
+  const themeClass = darkMode ? 'dark bg-gray-900' : 'bg-gray-50'
+  const headerClass = darkMode ? 'bg-gray-800 shadow-sm' : 'bg-white shadow-sm'
+  const textClass = darkMode ? 'text-white' : 'text-gray-900'
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm px-4 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Link 
-              href={`/${locale}/dashboard`}
-              className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-            >
-              <ArrowLeft className="w-5 h-5 mr-1" />
-              Back
-            </Link>
-            <Scale className="h-6 w-6 text-blue-600 mr-2" />
-            <h1 className="text-lg font-semibold text-gray-900">Legal AI Assistant</h1>
-            
-            {/* Conversation controls */}
-            <div className="ml-4 flex items-center space-x-2">
+    <div className={`flex h-screen ${themeClass} relative`}>
+      {/* Mobile backdrop */}
+      {showSidebar && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+      {/* Left Sidebar */}
+      <div className={`${showSidebar ? 'w-80' : 'w-0'} md:relative absolute md:translate-x-0 ${showSidebar ? 'translate-x-0' : '-translate-x-full'} transition-all duration-300 overflow-hidden flex-shrink-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-r z-50 h-full`}>
+        <div className="flex flex-col h-full">
+          {/* Sidebar Header */}
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-sm font-semibold ${textClass}`}>Chat History</h2>
               <button
-                onClick={() => setShowConversations(!showConversations)}
-                className="flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded hover:bg-gray-50"
+                onClick={() => setShowSidebar(false)}
+                className={`md:hidden p-1 rounded hover:bg-gray-100 ${darkMode ? 'hover:bg-gray-700' : ''}`}
               >
-                <History className="w-4 h-4 mr-1" />
-                History
-              </button>
-              <button
-                onClick={startNewConversation}
-                className="flex items-center px-3 py-1 text-sm text-white bg-blue-600 rounded hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                New
+                <X className="w-4 h-4" />
               </button>
             </div>
+            <button
+              onClick={startNewConversation}
+              className="w-full flex items-center justify-center px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Chat
+            </button>
           </div>
+          
+          {/* Conversations List */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-2">
+              {conversations.length === 0 ? (
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No conversations yet</p>
+              ) : (
+                conversations.map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    onClick={() => selectConversation(conversation)}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      currentConversationId === conversation.id 
+                        ? 'bg-blue-50 border border-blue-200 text-blue-900' 
+                        : darkMode 
+                          ? 'hover:bg-gray-700 text-gray-300 hover:text-gray-100' 
+                          : 'hover:bg-gray-50 text-gray-700 hover:text-gray-900'
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <MessageSquare className={`w-4 h-4 flex-shrink-0 mt-0.5 mr-2 ${darkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {conversation.title}
+                        </p>
+                        <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                          {conversation.message_count} messages
+                          {conversation.last_message_at && (
+                            <span className="block">
+                              {new Date(conversation.last_message_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Chat Area */}
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <header className={headerClass + ' px-4 py-4'}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {!showSidebar && (
+                <button
+                  onClick={() => setShowSidebar(true)}
+                  className={`mr-3 p-1 rounded hover:bg-gray-100 ${
+                    darkMode ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              )}
+              <Link 
+                href={`/${locale}/dashboard`}
+                className={`flex items-center mr-4 ${
+                  darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <ArrowLeft className="w-5 h-5 mr-1" />
+                Back
+              </Link>
+              <Scale className="h-6 w-6 text-blue-600 mr-2" />
+              <h1 className={`text-lg font-semibold ${textClass}`}>Legal AI Assistant</h1>
+              
+              {/* Theme toggle */}
+              <div className="ml-4">
+                <button
+                  onClick={toggleDarkMode}
+                  className={`flex items-center px-3 py-1 text-sm border rounded hover:bg-gray-50 ${
+                    darkMode 
+                      ? 'text-gray-300 hover:text-gray-100 border-gray-600 hover:bg-gray-700' 
+                      : 'text-gray-600 hover:text-gray-900 border-gray-300'
+                  }`}
+                >
+                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
           
           {/* User info and token stats */}
           <div className="flex items-center space-x-4">
             {user && (
-              <div className="bg-gray-50 rounded-lg px-4 py-2 shadow-sm border border-gray-200">
+              <div className={`bg-gray-50 rounded-lg px-4 py-2 shadow-sm border ${darkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-200'}`}>
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-blue-600">
@@ -340,10 +523,10 @@ export default function ChatPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className={`text-sm font-medium ${textClass}`}>
                       {user.user_metadata?.full_name || user.email}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                       {user.email}
                     </p>
                   </div>
@@ -353,28 +536,55 @@ export default function ChatPage() {
             
             {tokenStats && (
               <div className="flex items-center space-x-3">
-                <div className="bg-blue-50 rounded-lg px-4 py-2 shadow-sm border border-blue-200">
+                <div className={`rounded-lg px-4 py-2 shadow-sm border ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600' 
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
                   <div className="flex items-center space-x-2">
                     <Wallet className="w-4 h-4 text-blue-600" />
                     <div>
-                      <p className="text-xs text-gray-500">Available</p>
-                      <p className="text-sm font-semibold text-blue-900">
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Available</p>
+                      <p className={`text-sm font-semibold ${
+                        darkMode ? 'text-blue-400' : 'text-blue-900'
+                      }`}>
                         {(tokenStats.tokensRemaining || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-green-50 rounded-lg px-4 py-2 shadow-sm border border-green-200">
+                <div className={`rounded-lg px-4 py-2 shadow-sm border ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600' 
+                    : 'bg-green-50 border-green-200'
+                }`}>
                   <div className="flex items-center space-x-2">
                     <Zap className="w-4 h-4 text-green-600" />
                     <div>
-                      <p className="text-xs text-gray-500">Total</p>
-                      <p className="text-sm font-semibold text-green-900">
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Total</p>
+                      <p className={`text-sm font-semibold ${
+                        darkMode ? 'text-green-400' : 'text-green-900'
+                      }`}>
                         {(tokenStats.totalTokensPurchased || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
                 </div>
+                
+                {/* Buy Tokens Button */}
+                <Link 
+                  href={`/${locale}/buy-tokens`}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    tokenStats.tokensRemaining < 1000
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white' 
+                      : darkMode
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Buy Tokens
+                </Link>
                 
                 {/* Low token warning */}
                 {tokenStats.tokensRemaining < 1000 && (
@@ -385,56 +595,28 @@ export default function ChatPage() {
               </div>
             )}
           </div>
-        </div>
-      </header>
-
-      {/* Conversation Sidebar */}
-      {showConversations && (
-        <div className="bg-white border-b shadow-sm">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Conversations</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {conversations.length === 0 ? (
-                <p className="text-sm text-gray-500">No previous conversations</p>
-              ) : (
-                conversations.map((conversation) => (
-                  <button
-                    key={conversation.id}
-                    onClick={() => selectConversation(conversation)}
-                    className={`w-full text-left p-3 rounded-lg border hover:bg-gray-50 ${
-                      currentConversationId === conversation.id 
-                        ? 'bg-blue-50 border-blue-200' 
-                        : 'border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {conversation.title}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {conversation.message_count} messages
-                          {conversation.last_message_at && (
-                            <span className="ml-2">
-                              • {new Date(conversation.last_message_at).toLocaleDateString()}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <MessageSquare className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2" />
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        </header>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {messages.map((message) => (
+        {/* Messages */}
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-6 relative"
+        >
+          <div className="max-w-4xl mx-auto space-y-6">
+          {loadingConversation ? (
+            <div className="flex justify-start">
+              <div className={`max-w-3xl px-4 py-3 rounded-lg shadow-sm border ${
+                darkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-white text-gray-900'
+              }`}>
+                <div className="flex items-center">
+                  <Loader2 className="w-4 h-4 animate-spin mr-2 text-blue-600" />
+                  <span className="text-sm">Loading conversation...</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${
@@ -445,7 +627,9 @@ export default function ChatPage() {
                 className={`max-w-3xl px-4 py-3 rounded-lg ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-900 shadow-sm border'
+                    : darkMode
+                      ? 'bg-gray-800 text-gray-100 shadow-sm border border-gray-700'
+                      : 'bg-white text-gray-900 shadow-sm border'
                 }`}
               >
                 {message.role === 'assistant' ? (
@@ -454,23 +638,23 @@ export default function ChatPage() {
                       remarkPlugins={[remarkGfm]}
                       components={{
                         // Custom styling for markdown elements
-                        h1: (props) => <h1 className="text-lg font-bold mb-3 text-gray-900" {...props} />,
-                        h2: (props) => <h2 className="text-base font-bold mb-2 text-gray-900" {...props} />,
-                        h3: (props) => <h3 className="text-sm font-bold mb-2 text-gray-900" {...props} />,
-                        p: (props) => <p className="mb-3 last:mb-0 text-gray-800" {...props} />,
+                        h1: (props) => <h1 className={`text-lg font-bold mb-3 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`} {...props} />,
+                        h2: (props) => <h2 className={`text-base font-bold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`} {...props} />,
+                        h3: (props) => <h3 className={`text-sm font-bold mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`} {...props} />,
+                        p: (props) => <p className={`mb-3 last:mb-0 ${darkMode ? 'text-gray-200' : 'text-gray-800'}`} {...props} />,
                         ul: (props) => <ul className="list-disc list-outside ml-4 mb-3 space-y-1" {...props} />,
                         ol: (props) => <ol className="list-decimal list-outside ml-4 mb-3 space-y-1" {...props} />,
-                        li: (props) => <li className="text-gray-800" {...props} />,
-                        strong: (props) => <strong className="font-semibold text-gray-900" {...props} />,
-                        em: (props) => <em className="italic text-gray-800" {...props} />,
-                        code: (props) => <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono text-gray-800" {...props} />,
-                        pre: (props) => <pre className="bg-gray-100 p-3 rounded mb-3 overflow-x-auto text-xs font-mono" {...props} />,
-                        blockquote: (props) => <blockquote className="border-l-4 border-blue-300 pl-4 italic text-gray-700 mb-3 bg-blue-50 py-2" {...props} />,
-                        hr: (props) => <hr className="border-gray-300 my-4" {...props} />,
+                        li: (props) => <li className={darkMode ? 'text-gray-200' : 'text-gray-800'} {...props} />,
+                        strong: (props) => <strong className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`} {...props} />,
+                        em: (props) => <em className={`italic ${darkMode ? 'text-gray-200' : 'text-gray-800'}`} {...props} />,
+                        code: (props) => <code className={`px-1.5 py-0.5 rounded text-xs font-mono ${darkMode ? 'bg-gray-700 text-gray-200' : 'bg-gray-100 text-gray-800'}`} {...props} />,
+                        pre: (props) => <pre className={`p-3 rounded mb-3 overflow-x-auto text-xs font-mono ${darkMode ? 'bg-gray-700' : 'bg-gray-100'}`} {...props} />,
+                        blockquote: (props) => <blockquote className={`border-l-4 border-blue-300 pl-4 italic mb-3 py-2 ${darkMode ? 'text-gray-300 bg-gray-700' : 'text-gray-700 bg-blue-50'}`} {...props} />,
+                        hr: (props) => <hr className={`my-4 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`} {...props} />,
                         a: (props) => <a className="text-blue-600 hover:text-blue-800 underline" {...props} />,
-                        table: (props) => <table className="border-collapse border border-gray-300 mb-3 w-full text-xs" {...props} />,
-                        th: (props) => <th className="border border-gray-300 px-2 py-1 bg-gray-100 font-semibold text-left" {...props} />,
-                        td: (props) => <td className="border border-gray-300 px-2 py-1" {...props} />
+                        table: (props) => <table className={`border-collapse border mb-3 w-full text-xs ${darkMode ? 'border-gray-600' : 'border-gray-300'}`} {...props} />,
+                        th: (props) => <th className={`border px-2 py-1 font-semibold text-left ${darkMode ? 'border-gray-600 bg-gray-700' : 'border-gray-300 bg-gray-100'}`} {...props} />,
+                        td: (props) => <td className={`border px-2 py-1 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`} {...props} />
                       }}
                     >
                       {message.content}
@@ -490,34 +674,48 @@ export default function ChatPage() {
                 </p>
               </div>
             </div>
-          ))}
+          )))}
           
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-white text-gray-900 shadow-sm border max-w-3xl px-4 py-3 rounded-lg">
+              <div className={`max-w-3xl px-4 py-3 rounded-lg shadow-sm border ${
+                darkMode ? 'bg-gray-800 text-gray-100 border-gray-700' : 'bg-white text-gray-900'
+              }`}>
                 <div className="flex items-center">
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2 text-blue-600" />
                   <span className="text-sm">Thinking...</span>
                 </div>
               </div>
             </div>
           )}
           
-          <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
-      </div>
 
-      {/* Input Form */}
-      <div className="bg-white border-t px-4 py-4">
+        {/* Input Form */}
+        <div className={`border-t px-4 py-4 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white'}`}>
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           <div className="flex space-x-3">
             <div className="flex-1">
               <textarea
+                ref={textareaRef}
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  if (value.length <= 2000) {
+                    setInput(value)
+                  }
+                }}
                 placeholder="Ask me about local laws and regulations..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                aria-label="Chat message input"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-400' 
+                    : 'border-gray-300'
+                }`}
                 rows={1}
+                style={{ minHeight: '48px', maxHeight: '120px' }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -526,19 +724,36 @@ export default function ChatPage() {
                 }}
                 disabled={loading}
               />
+              <div className="flex justify-between items-center mt-2">
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Press Enter to send, Shift+Enter for new line
+                </p>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {input.length}/2000 characters
+                </p>
+              </div>
             </div>
             <button
               type="submit"
               disabled={!input.trim() || loading}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-all transform hover:scale-105 disabled:hover:scale-100"
             >
               <Send className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Press Enter to send, Shift+Enter for new line
-          </p>
         </form>
+        </div>
+        
+        {/* Floating Scroll to Bottom Button */}
+        {showScrollToBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="fixed bottom-24 right-8 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all transform hover:scale-105 z-10"
+            title="Scroll to bottom"
+          >
+            <ArrowLeft className="w-4 h-4 transform -rotate-90" />
+          </button>
+        )}
       </div>
     </div>
   )

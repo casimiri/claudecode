@@ -7,8 +7,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let conversationId: string = ''
+  let user: any = null
   try {
-    const { id: conversationId } = await params
+    const resolvedParams = await params
+    conversationId = resolvedParams.id
     
     const cookieStore = await cookies()
     
@@ -30,19 +33,28 @@ export async function GET(
       }
     )
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser()
+    user = authenticatedUser
     
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log(`API: Fetching messages for conversation ${conversationId} and user ${user.id}`)
     const messages = await getConversationMessages(conversationId, user.id)
     
+    console.log(`API: Successfully retrieved ${messages.length} messages`)
     return NextResponse.json({ messages })
   } catch (error: any) {
-    console.error('Get conversation messages error:', error)
+    console.error('Get conversation messages API error:', {
+      error,
+      message: error.message,
+      stack: error.stack,
+      conversationId: conversationId,
+      userId: user?.id
+    })
     return NextResponse.json(
-      { error: 'Failed to fetch conversation messages' },
+      { error: error.message || 'Failed to fetch conversation messages' },
       { status: 500 }
     )
   }
