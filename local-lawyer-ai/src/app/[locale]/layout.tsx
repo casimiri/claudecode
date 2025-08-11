@@ -1,4 +1,6 @@
 import {notFound} from 'next/navigation';
+import {NextIntlClientProvider} from 'next-intl';
+import {getMessages} from 'next-intl/server';
 
 type Props = {
   children: React.ReactNode;
@@ -16,5 +18,13 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  return children;
+  const messages = await getMessages({locale});
+
+  return (
+    <div data-locale={locale}>
+      <NextIntlClientProvider messages={messages}>
+        {children}
+      </NextIntlClientProvider>
+    </div>
+  );
 }

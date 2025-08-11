@@ -40,65 +40,73 @@ export async function GET(request: NextRequest) {
     }
 
     if (data.user) {
-      // Use admin client to bypass RLS for user creation
+      // The user should already be created by the database trigger
+      // Let's just verify the user exists and optionally update their profile
       const supabaseAdmin = getSupabaseAdmin()
       
-      // Check if user already exists
-      const { data: existingUser, error: checkError } = await supabaseAdmin
-        .from('users')
-        .select('id, tokens_used_this_period, total_tokens_purchased')
-        .eq('id', data.user.id)
-        .single()
-
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('Error checking existing user:', checkError)
-        return NextResponse.redirect(new URL('/?error=user_check_failed', request.url))
-      }
-
-      let upsertError = null
-
-      if (existingUser) {
-        // User exists - update profile fields only
-        const updateData: any = {
-          email: data.user.email!,
-          full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-          avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
-          provider: data.user.app_metadata?.provider || 'google',
-          provider_id: data.user.user_metadata?.provider_id || data.user.id,
-          updated_at: new Date().toISOString()
-        }
-
-        const { error } = await supabaseAdmin
+      try {
+        // Check if user exists (should be created by trigger)
+        const { data: existingUser, error: checkError } = await supabaseAdmin
           .from('users')
-          .update(updateData)
+          .select('id, tokens_used_this_period, total_tokens_purchased, email, full_name, avatar_url')
           .eq('id', data.user.id)
-        
-        upsertError = error
-      } else {
-        // New user - create with default token allocation (handled by database trigger)
-        const { error } = await supabaseAdmin
-          .from('users')
-          .insert({
-            id: data.user.id,
-            email: data.user.email!,
-            full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
-            avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
-            provider: data.user.app_metadata?.provider || 'google',
-            provider_id: data.user.user_metadata?.provider_id || data.user.id
-          })
-        
-        upsertError = error
-      }
+          .single()
 
-      if (upsertError) {
-        console.error('Error updating/creating user profile:', upsertError)
-        console.error('User data attempted:', {
-          id: data.user.id,
-          email: data.user.email,
-          metadata: data.user.user_metadata,
-          app_metadata: data.user.app_metadata
-        })
-        return NextResponse.redirect(new URL('/?error=profile_update_failed&details=' + encodeURIComponent(upsertError.message), request.url))
+        if (checkError) {
+          if (checkError.code === 'PGRST116') {
+            // User doesn't exist - this should not happen with working trigger
+            console.warn('User not found in database, trigger may have failed. Attempting manual creation.')
+            
+            // Fallback: create user manually
+            const { error: insertError } = await supabaseAdmin
+              .from('users')
+              .insert({
+                id: data.user.id,
+                email: data.user.email!,
+                full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || null,
+                avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || null,
+                provider: data.user.app_metadata?.provider || 'email',
+                provider_id: data.user.user_metadata?.provider_id || data.user.id,
+                tokens_used_this_period: 0,
+                tokens_limit: 10000,
+                total_tokens_purchased: 10000
+              })
+              
+            if (insertError) {
+              console.error('Fallback user creation failed:', insertError)
+              return NextResponse.redirect(new URL(`/?error=user_creation_failed&details=${encodeURIComponent(insertError.message)}`, request.url))
+            }
+          } else {
+            console.error('Error checking user existence:', checkError)
+            return NextResponse.redirect(new URL(`/?error=user_check_failed&details=${encodeURIComponent(checkError.message)}`, request.url))
+          }
+        } else {
+          // User exists, optionally update profile with latest data
+          const shouldUpdate = 
+            existingUser.email !== data.user.email ||
+            !existingUser.full_name ||
+            !existingUser.avatar_url
+            
+          if (shouldUpdate) {
+            const { error: updateError } = await supabaseAdmin
+              .from('users')
+              .update({
+                email: data.user.email!,
+                full_name: data.user.user_metadata?.full_name || data.user.user_metadata?.name || existingUser.full_name,
+                avatar_url: data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || existingUser.avatar_url,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', data.user.id)
+              
+            if (updateError) {
+              console.error('Error updating user profile:', updateError)
+              // Don't fail the login for profile update errors
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Unexpected error in user profile handling:', error)
+        return NextResponse.redirect(new URL(`/?error=profile_handling_failed&details=${encodeURIComponent(String(error))}`, request.url))
       }
     }
   }

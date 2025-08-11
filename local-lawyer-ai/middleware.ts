@@ -2,10 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import createIntlMiddleware from 'next-intl/middleware'
+import {locales} from './src/i18n'
 
 const intlMiddleware = createIntlMiddleware({
-  locales: ['en', 'fr'],
-  defaultLocale: 'en'
+  locales,
+  defaultLocale: 'en',
+  localePrefix: 'always'
 });
 
 async function handleAuthMiddleware(req: NextRequest) {
@@ -97,23 +99,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // Handle internationalization for all other routes
-  const intlResponse = intlMiddleware(req);
-  if (intlResponse) {
-    return intlResponse;
-  }
-
-  // For localized routes, we need to handle auth differently
-  // since the routes now include locale (e.g., /en/dashboard, /fr/login)
-  const locale = req.nextUrl.pathname.split('/')[1];
-  const pathWithoutLocale = req.nextUrl.pathname.replace(`/${locale}`, '');
-
-  // Handle auth for localized protected routes
-  if (pathWithoutLocale.startsWith('/dashboard') || pathWithoutLocale.startsWith('/chat')) {
-    // Auth logic will be handled in the page components for now
-    // to avoid complexity with locale-based redirects
-  }
-
-  return NextResponse.next()
+  return intlMiddleware(req);
 }
 
 export const config = {

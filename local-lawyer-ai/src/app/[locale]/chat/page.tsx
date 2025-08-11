@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
 import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Moon, Sun, Menu, X, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
@@ -8,6 +9,7 @@ import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import LanguageSwitcher from '../../../components/LanguageSwitcher'
 
 interface Message {
   id: string
@@ -36,6 +38,7 @@ export default function ChatPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const locale = params?.locale as string
+  const t = useTranslations()
   
   const [messages, setMessages] = useState<Message[]>([])
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -167,15 +170,15 @@ export default function ChatPage() {
   }
 
   // Start a new conversation
-  const startNewConversation = () => {
+  const startNewConversation = useCallback(() => {
     setCurrentConversationId(null)
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: 'Hello! I\'m your AI legal assistant. I can help you with questions about local laws and regulations. What would you like to know?',
+      content: t('chat.welcomeMessage'),
       timestamp: new Date(),
     }])
-  }
+  }, [t])
 
   // Select a conversation
   const selectConversation = async (conversation: Conversation) => {
@@ -228,7 +231,7 @@ export default function ChatPage() {
     }
     
     checkAuth()
-  }, [locale, searchParams])
+  }, [locale, searchParams, startNewConversation])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -410,7 +413,7 @@ export default function ChatPage() {
           {/* Sidebar Header */}
           <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className={`text-sm font-semibold ${textClass}`}>Chat History</h2>
+              <h2 className={`text-sm font-semibold ${textClass}`}>{t('chat.chatHistory')}</h2>
               <button
                 onClick={() => setShowSidebar(false)}
                 className={`md:hidden p-1 rounded hover:bg-gray-100 ${darkMode ? 'hover:bg-gray-700' : ''}`}
@@ -423,7 +426,7 @@ export default function ChatPage() {
               className="w-full flex items-center justify-center px-3 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-4 h-4 mr-2" />
-              New Chat
+              {t('chat.newChat')}
             </button>
           </div>
           
@@ -431,7 +434,7 @@ export default function ChatPage() {
           <div className="flex-1 overflow-y-auto p-4">
             <div className="space-y-2">
               {conversations.length === 0 ? (
-                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No conversations yet</p>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{t('chat.noConversations')}</p>
               ) : (
                 conversations.map((conversation) => (
                   <button
@@ -452,7 +455,7 @@ export default function ChatPage() {
                           {conversation.title}
                         </p>
                         <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
-                          {conversation.message_count} messages
+                          {conversation.message_count} {t('chat.messages')}
                           {conversation.last_message_at && (
                             <span className="block">
                               {new Date(conversation.last_message_at).toLocaleDateString()}
@@ -495,7 +498,12 @@ export default function ChatPage() {
                 Back
               </Link>
               <Scale className="h-6 w-6 text-blue-600 mr-2" />
-              <h1 className={`text-lg font-semibold ${textClass}`}>Legal AI Assistant</h1>
+              <h1 className={`text-lg font-semibold ${textClass}`}>{t('chat.title')}</h1>
+              
+              {/* Language Switcher */}
+              <div className="ml-4">
+                <LanguageSwitcher />
+              </div>
               
               {/* Theme toggle */}
               <div className="ml-4">
@@ -707,7 +715,7 @@ export default function ChatPage() {
                     setInput(value)
                   }
                 }}
-                placeholder="Ask me about local laws and regulations..."
+                placeholder={t('chat.inputPlaceholder')}
                 aria-label="Chat message input"
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all ${
                   darkMode 
@@ -726,7 +734,7 @@ export default function ChatPage() {
               />
               <div className="flex justify-between items-center mt-2">
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Press Enter to send, Shift+Enter for new line
+                  {t('chat.enterToSend')}
                 </p>
                 <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                   {input.length}/2000 characters

@@ -4,9 +4,10 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 type Props = {
   params: Promise<{locale: string}>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function HomePage({ params, searchParams }: Props & { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+export default async function HomePage({ params, searchParams }: Props) {
   const { locale } = await params;
   const urlParams = await searchParams;
   

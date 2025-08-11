@@ -1,16 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
 import { signInWithGoogle, signInWithFacebook } from '../../../../lib/auth'
+import { isProviderEnabled } from '../../../../lib/auth-config'
 import toast from 'react-hot-toast'
-import { Chrome, Facebook, Scale, ArrowLeft, Loader2 } from 'lucide-react'
+import { Chrome, Facebook, Scale, Loader2, Shield, Sparkles, Users } from 'lucide-react'
 import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import LanguageSwitcher from '../../../components/LanguageSwitcher'
 
 export default function LoginPage() {
   const params = useParams()
   const searchParams = useSearchParams()
   const locale = params?.locale as string
+  const t = useTranslations()
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [facebookLoading, setFacebookLoading] = useState(false)
@@ -21,9 +25,9 @@ export default function LoginPage() {
     const message = searchParams?.get('message')
     
     if (error === 'oauth_failed' && message) {
-      toast.error(`Sign in failed: ${decodeURIComponent(message)}`)
+      toast.error(`${t('auth.signInFailed')}: ${decodeURIComponent(message)}`)
     }
-  }, [searchParams])
+  }, [searchParams, t])
 
   const handleGoogleSignIn = async () => {
     try {
@@ -31,7 +35,7 @@ export default function LoginPage() {
       setGoogleLoading(true)
       await signInWithGoogle(locale)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google')
+      toast.error(error.message || t('auth.failedToSignInWithGoogle'))
     } finally {
       setLoading(false)
       setGoogleLoading(false)
@@ -44,7 +48,14 @@ export default function LoginPage() {
       setFacebookLoading(true)
       await signInWithFacebook(locale)
     } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Facebook')
+      console.error('Facebook sign-in error:', error)
+      
+      // Handle specific Facebook OAuth errors
+      if (error.message?.includes('validation_failed')) {
+        toast.error('Facebook login is currently unavailable. Please use Google sign-in or contact support.')
+      } else {
+        toast.error(error.message || t('auth.failedToSignInWithFacebook'))
+      }
     } finally {
       setLoading(false)
       setFacebookLoading(false)
@@ -52,139 +63,166 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 relative">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-zinc-900 relative overflow-hidden">
+      {/* Enhanced Background Effects */}
+      <div className="absolute inset-0">
+        {/* Main gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-purple-600/20"></div>
+        
+        {/* Animated orbs */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse-slow animation-delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/20 rounded-full blur-2xl animate-float"></div>
+        
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px'
+          }}></div>
+        </div>
       </div>
 
-      {/* Header */}
-      <header className="relative z-10 bg-white/80 backdrop-blur-sm border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <Link href={`/${locale}`} className="flex items-center group">
-              <ArrowLeft className="h-5 w-5 text-gray-500 mr-2 group-hover:text-blue-600 transition-colors" />
-              <Scale className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Local Lawyer AI</span>
-            </Link>
-            <div className="text-sm text-gray-600">
-              Need help?{' '}
-              <Link href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                Contact Support
-              </Link>
+      {/* Floating Navigation */}
+      <nav className="relative z-10 p-6">
+        <div className="max-w-7xl mx-auto flex justify-between items-center">
+          <Link href={`/${locale}`} className="group flex items-center space-x-3 hover:scale-105 transition-all duration-300">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg group-hover:shadow-blue-500/25 transition-shadow duration-300">
+              <Scale className="h-6 w-6 text-white" />
             </div>
+            <div className="text-white">
+              <h1 className="text-xl font-bold">{t('common.appName')}</h1>
+              <p className="text-xs text-gray-300">Legal AI Assistant</p>
+            </div>
+          </Link>
+          <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
+            <Link href="#" className="text-sm text-gray-300 hover:text-white transition-colors duration-200 flex items-center space-x-1">
+              <span>{t('auth.needHelp')}</span>
+            </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          {/* Card */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 p-8 sm:p-10">
-            {/* Header */}
-            <div className="text-center">
-              <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                <Scale className="h-8 w-8 text-white" />
-              </div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">
-                Welcome Back
-              </h2>
-              <p className="text-gray-600 mb-8">
-                Sign in to access your AI-powered legal assistant
-              </p>
+      <div className="relative z-10 min-h-[calc(100vh-120px)] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-lg">
+          {/* Welcome Message */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm border border-white/10 rounded-full px-6 py-3 mb-8">
+              <Sparkles className="h-5 w-5 text-blue-400" />
+              <span className="text-sm text-gray-300 font-medium">AI-Powered Legal Assistance</span>
             </div>
-            
-            {/* Social Sign-in Buttons */}
-            <div className="space-y-4">
+            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+              {t('auth.loginPageTitle')}
+            </h2>
+            <p className="text-xl text-gray-300 mb-2">
+              {t('auth.loginPageSubtitle')}
+            </p>
+            <p className="text-sm text-gray-400">
+              Access your personal legal AI assistant trained on local law documents
+            </p>
+          </div>
+
+          {/* Login Card */}
+          <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 sm:p-10 shadow-2xl">
+            {/* Social Login Buttons */}
+            <div className="space-y-4 mb-8">
               <button
                 onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="group relative w-full flex justify-center items-center py-4 px-6 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
+                className="group relative w-full flex items-center justify-center py-4 px-6 bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl text-gray-900 font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
               >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
                 {googleLoading ? (
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  <Loader2 className="w-6 h-6 mr-3 animate-spin text-blue-600" />
                 ) : (
-                  <Chrome className="w-5 h-5 mr-3 text-red-500" />
+                  <Chrome className="w-6 h-6 mr-3 text-red-500" />
                 )}
-                <span className="flex-1 text-center">
-                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                <span className="relative z-10">
+                  {googleLoading ? t('auth.signingIn') : t('auth.continueWithGoogle')}
                 </span>
               </button>
               
-              <button
-                onClick={handleFacebookSignIn}
-                disabled={loading}
-                className="group relative w-full flex justify-center items-center py-4 px-6 border border-gray-200 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:shadow-md"
-              >
-                {facebookLoading ? (
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                ) : (
-                  <Facebook className="w-5 h-5 mr-3 text-blue-600" />
-                )}
-                <span className="flex-1 text-center">
-                  {facebookLoading ? 'Signing in...' : 'Continue with Facebook'}
-                </span>
-              </button>
+              {/* Facebook OAuth - only show if provider is enabled */}
+              {isProviderEnabled('facebook') && (
+                <button
+                  onClick={handleFacebookSignIn}
+                  disabled={loading}
+                  className="group relative w-full flex items-center justify-center py-4 px-6 bg-[#1877F2] hover:bg-[#166FE5] border border-[#1877F2] rounded-2xl text-white font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl hover:shadow-blue-500/25 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity duration-300"></div>
+                  {facebookLoading ? (
+                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                  ) : (
+                    <Facebook className="w-6 h-6 mr-3" />
+                  )}
+                  <span className="relative z-10">
+                    {facebookLoading ? t('auth.signingIn') : t('auth.continueWithFacebook')}
+                  </span>
+                </button>
+              )}
             </div>
 
-            {/* Security Badge */}
-            <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-4 border border-green-100">
-              <div className="flex items-center justify-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                  </svg>
+            {/* Security & Trust Indicators */}
+            <div className="space-y-4 mb-8">
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-2xl p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0">
+                    <Shield className="h-6 w-6 text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-green-300">{t('auth.secureLogin')}</p>
+                    <p className="text-xs text-green-200/80">Enterprise-grade security with OAuth 2.0</p>
+                  </div>
                 </div>
-                <p className="ml-2 text-sm font-medium text-gray-700">
-                  Secure login with industry-standard encryption
-                </p>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
+                  <Users className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-300 font-medium">10k+ Users</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
+                  <Shield className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-300 font-medium">Secure</p>
+                </div>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
+                  <Sparkles className="h-8 w-8 text-purple-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-300 font-medium">AI-Powered</p>
+                </div>
               </div>
             </div>
-            
+
             {/* Legal Text */}
-            <div className="mt-8 text-center">
-              <p className="text-xs text-gray-500 leading-relaxed">
-                By signing in, you agree to our{' '}
-                <Link href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                  Terms of Service
+            <div className="text-center pt-4 border-t border-white/10">
+              <p className="text-xs text-gray-400 leading-relaxed">
+                {t('auth.bySigningIn')}{' '}
+                <Link href="#" className="text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2">
+                  {t('auth.termsOfService')}
                 </Link>{' '}
-                and{' '}
-                <Link href="#" className="text-blue-600 hover:text-blue-500 font-medium">
-                  Privacy Policy
+                {t('auth.and')}{' '}
+                <Link href="#" className="text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2">
+                  {t('auth.privacyPolicy')}
                 </Link>
               </p>
             </div>
           </div>
 
-          {/* Additional Features */}
-          <div className="text-center">
-            <div className="grid grid-cols-3 gap-6 max-w-xs mx-auto">
-              <div className="text-center">
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <p className="text-xs text-gray-600 font-medium">Fast Access</p>
+          {/* Bottom Stats */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center space-x-8 text-sm text-gray-400">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>99.9% Uptime</span>
               </div>
-              <div className="text-center">
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <p className="text-xs text-gray-600 font-medium">Secure</p>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse animation-delay-500"></div>
+                <span>ISO 27001 Certified</span>
               </div>
-              <div className="text-center">
-                <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                  </svg>
-                </div>
-                <p className="text-xs text-gray-600 font-medium">Trusted</p>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-1000"></div>
+                <span>GDPR Compliant</span>
               </div>
             </div>
           </div>
@@ -192,28 +230,42 @@ export default function LoginPage() {
       </div>
 
       <style jsx>{`
-        @keyframes blob {
-          0% {
-            transform: translate(0px, 0px) scale(1);
+        @keyframes pulse-slow {
+          0%, 100% {
+            opacity: 0.3;
           }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
-          100% {
-            transform: translate(0px, 0px) scale(1);
+          50% {
+            opacity: 0.6;
           }
         }
-        .animate-blob {
-          animation: blob 7s infinite;
+        
+        @keyframes float {
+          0%, 100% {
+            transform: translate(-50%, -50%) translateY(0px);
+          }
+          50% {
+            transform: translate(-50%, -50%) translateY(-20px);
+          }
         }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+        
+        .animate-pulse-slow {
+          animation: pulse-slow 4s ease-in-out infinite;
         }
-        .animation-delay-4000 {
-          animation-delay: 4s;
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .animation-delay-500 {
+          animation-delay: 0.5s;
+        }
+        
+        .animation-delay-1000 {
+          animation-delay: 1s;
+        }
+        
+        .animation-delay-1500 {
+          animation-delay: 1.5s;
         }
       `}</style>
     </div>

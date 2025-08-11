@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useTranslations } from 'next-intl'
 import { supabase } from '../../../../lib/supabase'
 import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
@@ -9,6 +10,7 @@ import Link from 'next/link'
 import { signOut } from '../../../../lib/auth'
 import toast from 'react-hot-toast'
 import { useParams } from 'next/navigation'
+import LanguageSwitcher from '../../../components/LanguageSwitcher'
 
 interface UserProfile {
   id: string
@@ -57,6 +59,7 @@ interface TokenUsageStats {
 export default function DashboardPage() {
   const params = useParams()
   const locale = params?.locale as string
+  const t = useTranslations()
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenUsageStats | null>(null)
@@ -210,9 +213,12 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Scale className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Local Lawyer AI</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">{t('common.appName')}</span>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Language Switcher */}
+              <LanguageSwitcher />
+              
               {/* User Menu Dropdown */}
               <div className="relative" ref={userMenuRef}>
                 <button
@@ -246,7 +252,7 @@ export default function DashboardPage() {
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <Settings className="w-4 h-4 mr-2" />
-                      Account Settings
+                      {t('navigation.accountSettings')}
                     </Link>
                     <button
                       onClick={() => {
@@ -256,7 +262,7 @@ export default function DashboardPage() {
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      {t('auth.signOut')}
                     </button>
                   </div>
                 )}
@@ -268,7 +274,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
-                  Start Chatting
+                  {t('dashboard.startChatting')}
                 </Link>
               ) : (
                 <Link
@@ -276,7 +282,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Buy Tokens
+                  {t('tokens.buyTokens')}
                 </Link>
               )}
             </div>
@@ -287,7 +293,7 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Token Balance */}
         <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Token Balance</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">{t('dashboard.tokenBalance')}</h2>
           <div className="flex items-center justify-between">
             <div className="flex space-x-8">
               <div>
@@ -295,10 +301,10 @@ export default function DashboardPage() {
                   <span className="text-3xl font-bold text-blue-600">
                     {tokenStats ? tokenStats.tokensRemaining.toLocaleString() : '---'}
                   </span>
-                  <span className="ml-2 text-sm text-gray-600">available tokens</span>
+                  <span className="ml-2 text-sm text-gray-600">{t('dashboard.availableTokens')}</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Ready to use for AI conversations
+                  {t('dashboard.readyToUse')}
                 </p>
               </div>
               <div>
@@ -306,10 +312,10 @@ export default function DashboardPage() {
                   <span className="text-3xl font-bold text-green-600">
                     {profile ? (profile.total_tokens_purchased || 0).toLocaleString() : '---'}
                   </span>
-                  <span className="ml-2 text-sm text-gray-600">total purchased</span>
+                  <span className="ml-2 text-sm text-gray-600">{t('dashboard.totalPurchased')}</span>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Tokens never expire
+                  {t('dashboard.tokensNeverExpire')}
                 </p>
               </div>
             </div>
@@ -328,10 +334,10 @@ export default function DashboardPage() {
           <div className="mt-6 pt-6 border-t border-gray-200">
             <div className="flex items-center mb-4">
               <MessageCircle className="h-6 w-6 text-blue-600" />
-              <h4 className="ml-2 text-md font-medium text-gray-900">AI Legal Assistant</h4>
+              <h4 className="ml-2 text-md font-medium text-gray-900">{t('dashboard.aiLegalAssistant')}</h4>
             </div>
             <p className="text-gray-600 text-sm mb-4">
-              Get instant answers to your legal questions using our AI-powered assistant trained on local law documents.
+              {t('dashboard.aiAssistantDescription')}
             </p>
             {profile && (profile.total_tokens_purchased || 0) > 0 ? (
               <Link 
@@ -349,7 +355,7 @@ export default function DashboardPage() {
                   className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-md text-sm transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Buy Tokens
+                  {t('tokens.buyTokens')}
                 </Link>
               </div>
             )}
@@ -364,7 +370,7 @@ export default function DashboardPage() {
                 <MessageCircle className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Conversations</p>
+                <p className="text-sm font-medium text-gray-600">{t('dashboard.totalConversations')}</p>
                 <p className="text-2xl font-bold text-gray-900">
                   {recentConversations.length}
                 </p>
