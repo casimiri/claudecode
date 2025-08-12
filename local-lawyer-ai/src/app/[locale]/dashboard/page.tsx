@@ -173,7 +173,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Access Denied</h1>
           <p className="mt-2 text-gray-600 dark:text-gray-300">Please sign in to access your dashboard.</p>
           <Link href={`/${locale}/login`} className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-md">
-            Sign In
+            {t('dashboard.signIn')}
           </Link>
         </div>
       </div>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                         {profile.email}
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                        Member since {new Date(user.created_at).toLocaleDateString('en-US', {
+                        {t('dashboard.memberSince')} {new Date(user.created_at).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short'
                         })}
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                 className="flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-md text-sm transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Buy Tokens
+                {t('dashboard.buyTokensButton')}
               </Link>
             </div>
           </div>
@@ -323,11 +323,11 @@ export default function DashboardPage() {
                 className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm"
               >
                 <MessageCircle className="w-4 h-4 mr-2" />
-                Start Chatting
+{t('dashboard.startChattingButton')}
               </Link>
             ) : (
               <div>
-                <p className="text-red-600 text-sm mb-2">Tokens required to use AI chat</p>
+                <p className="text-red-600 text-sm mb-2">{t('dashboard.tokensRequired')}</p>
                 <Link 
                   href={`/${locale}/buy-tokens`}
                   className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-md text-sm transition-all duration-200 shadow-lg hover:shadow-xl"
@@ -362,7 +362,7 @@ export default function DashboardPage() {
                 <TrendingUp className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Tokens Used Today</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('dashboard.tokensUsedToday')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {tokenStats ? tokenStats.tokensUsed.toLocaleString() : '0'}
                 </p>
@@ -376,7 +376,7 @@ export default function DashboardPage() {
                 <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Avg. Tokens/Chat</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('dashboard.avgTokensPerChat')}</p>
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
                   {dashboardStats ? dashboardStats.averageTokensPerConversation.toLocaleString() : '0'}
                 </p>
@@ -390,9 +390,9 @@ export default function DashboardPage() {
                 <Activity className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Account Status</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{t('dashboard.accountStatus')}</p>
                 <p className="text-sm font-bold text-green-600 dark:text-green-400">
-                  {profile && (profile.total_tokens_purchased || 0) > 0 ? 'Active' : 'Free Tier'}
+                  {profile && (profile.total_tokens_purchased || 0) > 0 ? t('dashboard.active') : t('dashboard.freeTier')}
                 </p>
               </div>
             </div>
@@ -403,7 +403,7 @@ export default function DashboardPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-700 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
             <Zap className="h-6 w-6 text-blue-600 mr-2" />
-            Quick Actions
+            {t('dashboard.quickActions')}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link
@@ -421,10 +421,10 @@ export default function DashboardPage() {
                 <div>
                   <h3 className={`font-medium ${
                     profile && (profile.total_tokens_purchased || 0) > 0 ? 'text-gray-900' : 'text-gray-500'
-                  }`}>Start New Chat</h3>
+                  }`}>{t('dashboard.startNewChat')}</h3>
                   <p className={`text-sm ${
                     profile && (profile.total_tokens_purchased || 0) > 0 ? 'text-gray-600' : 'text-gray-400'
-                  }`}>Ask legal questions</p>
+                  }`}>{t('dashboard.askLegalQuestions')}</p>
                 </div>
               </div>
             </Link>
@@ -436,8 +436,8 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <Zap className="h-8 w-8 text-purple-600 mr-3" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Buy Tokens</h3>
-                  <p className="text-sm text-gray-600">Get more AI credits</p>
+                  <h3 className="font-medium text-gray-900">{t('dashboard.buyTokensButton')}</h3>
+                  <p className="text-sm text-gray-600">{t('dashboard.getMoreAiCredits')}</p>
                 </div>
               </div>
             </Link>
@@ -449,8 +449,8 @@ export default function DashboardPage() {
               <div className="flex items-center">
                 <Settings className="h-8 w-8 text-gray-600 mr-3" />
                 <div>
-                  <h3 className="font-medium text-gray-900">Account Settings</h3>
-                  <p className="text-sm text-gray-600">Manage your profile</p>
+                  <h3 className="font-medium text-gray-900">{t('navigation.accountSettings')}</h3>
+                  <p className="text-sm text-gray-600">{t('dashboard.manageYourProfile')}</p>
                 </div>
               </div>
             </Link>
@@ -462,7 +462,7 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
               <Clock className="h-6 w-6 text-blue-600 mr-2" />
-              Recent Conversations
+              {t('dashboard.recentConversations')}
             </h2>
             {recentConversations.length > 0 ? (
               <div className="space-y-3">
@@ -477,7 +477,7 @@ export default function DashboardPage() {
                         <FileText className="h-4 w-4 text-gray-400 mr-3" />
                         <div>
                           <p className="font-medium text-gray-900 truncate max-w-xs">
-                            {conversation.title || 'Untitled Conversation'}
+                            {conversation.title || t('dashboard.untitledConversation')}
                           </p>
                           <p className="text-sm text-gray-500">
                             {new Date(conversation.created_at).toLocaleDateString('en-US', {
@@ -497,24 +497,24 @@ export default function DashboardPage() {
                   href={`/${locale}/chat`}
                   className="block p-3 text-center text-blue-600 hover:text-blue-700 font-medium text-sm rounded-lg hover:bg-blue-50 transition-colors"
                 >
-                  View All Conversations
+{t('dashboard.viewAllConversations')}
                 </Link>
               </div>
             ) : (
               <div className="text-center py-8">
                 <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 mb-2">No conversations yet</p>
-                <p className="text-sm text-gray-400 mb-4">Start your first legal consultation!</p>
+                <p className="text-gray-500 mb-2">{t('dashboard.noConversations')}</p>
+                <p className="text-sm text-gray-400 mb-4">{t('dashboard.startFirstConsultation')}</p>
                 {profile && (profile.total_tokens_purchased || 0) > 0 ? (
                   <Link
                     href={`/${locale}/chat`}
                     className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
-                    Start First Chat
+                    {t('dashboard.startFirstChat')}
                   </Link>
                 ) : (
-                  <p className="text-sm text-gray-500">Purchase tokens to start chatting</p>
+                  <p className="text-sm text-gray-500">{t('dashboard.purchaseTokensToStart')}</p>
                 )}
               </div>
             )}
@@ -523,12 +523,12 @@ export default function DashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
               <BarChart3 className="h-6 w-6 text-green-600 mr-2" />
-              Usage Analytics
+              {t('dashboard.usageAnalytics')}
             </h2>
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-700">Token Usage Progress</span>
+                  <span className="text-sm font-medium text-gray-700">{t('dashboard.tokenUsageProgress')}</span>
                   <span className="text-sm text-gray-500">
                     {tokenStats ? `${tokenStats.usagePercentage.toFixed(1)}%` : '0%'}
                   </span>
@@ -547,10 +547,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="text-xs text-gray-500">
-                    {tokenStats ? tokenStats.tokensUsed.toLocaleString() : 0} used
+                    {tokenStats ? tokenStats.tokensUsed.toLocaleString() : 0} {t('dashboard.used')}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {tokenStats ? tokenStats.tokensRemaining.toLocaleString() : 0} remaining
+                    {tokenStats ? tokenStats.tokensRemaining.toLocaleString() : 0} {t('dashboard.remaining')}
                   </span>
                 </div>
               </div>
@@ -561,13 +561,13 @@ export default function DashboardPage() {
                     <p className="text-2xl font-bold text-blue-600">
                       {profile ? (profile.total_tokens_purchased || 0).toLocaleString() : '0'}
                     </p>
-                    <p className="text-sm text-gray-600">Total Purchased</p>
+                    <p className="text-sm text-gray-600">{t('dashboard.totalPurchased')}</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold text-green-600">
                       {recentConversations.length}
                     </p>
-                    <p className="text-sm text-gray-600">Conversations</p>
+                    <p className="text-sm text-gray-600">{t('dashboard.conversations')}</p>
                   </div>
                 </div>
               </div>
@@ -579,9 +579,9 @@ export default function DashboardPage() {
                       <Zap className="h-5 w-5 text-orange-600" />
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-orange-800">Low Token Warning</p>
+                      <p className="text-sm font-medium text-orange-800">{t('dashboard.lowTokenWarning')}</p>
                       <p className="text-xs text-orange-600 mt-1">
-                        You have {tokenStats.tokensRemaining.toLocaleString()} tokens remaining
+                        {t('dashboard.tokensRemainingWarning', { count: tokenStats.tokensRemaining.toLocaleString() })}
                       </p>
                     </div>
                   </div>
@@ -597,7 +597,7 @@ export default function DashboardPage() {
 
         {/* Recent Activity - Token Purchase History */}
         <div className="mt-8 bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('dashboard.recentActivity')}</h3>
           
           {profile?.tokens_purchase_history && profile.tokens_purchase_history.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -641,7 +641,7 @@ export default function DashboardPage() {
                             ? 'bg-green-100 text-green-800' 
                             : 'bg-blue-100 text-blue-800'
                         }`}>
-                          {purchase.payment_method === 'free' ? 'Free Starter Kit' : 'Card Payment'}
+                          {purchase.payment_method === 'free' ? t('dashboard.freeStarterKit') : t('dashboard.cardPayment')}
                         </span>
                       </div>
                     )}
@@ -651,14 +651,14 @@ export default function DashboardPage() {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Zap className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>No token purchases yet</p>
-              <p className="text-sm">Purchase your first token package to get started!</p>
+              <p>{t('dashboard.noTokenPurchases')}</p>
+              <p className="text-sm">{t('dashboard.purchaseFirstPackage')}</p>
               <Link 
                 href={`/${locale}/buy-tokens`}
                 className="inline-flex items-center mt-4 px-4 py-2 text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 <Zap className="w-4 h-4 mr-1" />
-                Buy Tokens
+                {t('dashboard.buyTokensButton')}
               </Link>
             </div>
           )}

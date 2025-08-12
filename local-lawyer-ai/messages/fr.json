@@ -54,7 +54,17 @@
     "trusted": "Fiable",
     "signInFailed": "Échec de la connexion",
     "failedToSignInWithGoogle": "Échec de la connexion avec Google",
-    "failedToSignInWithFacebook": "Échec de la connexion avec Facebook"
+    "failedToSignInWithFacebook": "Échec de la connexion avec Facebook",
+    "legalAssistantTagline": "Assistant juridique IA",
+    "aiPoweredLegalAssistance": "Assistance juridique alimentée par l'IA",
+    "accessDescription": "Accédez à votre assistant juridique IA personnel formé sur les documents de droit local",
+    "secureLoginDescription": "Sécurité de niveau entreprise avec OAuth 2.0",
+    "tenKPlusUsers": "10k+ Utilisateurs",
+    "secure": "Sécurisé",
+    "aiPowered": "Alimenté par l'IA",
+    "uptimeStats": "99,9% de disponibilité",
+    "isoCertified": "Certifié ISO 27001",
+    "gdprCompliant": "Conforme RGPD"
   },
   "navigation": {
     "home": "Accueil",
@@ -135,7 +145,38 @@
     "tokens": "jetons",
     "freeStarterKit": "Kit de démarrage gratuit",
     "cardPayment": "Paiement par carte",
-    "memberSince": "Membre depuis"
+    "memberSince": "Membre depuis",
+    "signIn": "Se connecter",
+    "buyTokensButton": "Acheter des jetons",
+    "startChattingButton": "Commencer à discuter",
+    "tokensUsedToday": "Jetons utilisés aujourd'hui",
+    "avgTokensPerChat": "Jetons moy./Chat",
+    "accountStatus": "Statut du compte",
+    "active": "Actif",
+    "freeTier": "Niveau gratuit",
+    "quickActions": "Actions rapides",
+    "startNewChat": "Nouveau chat",
+    "askLegalQuestions": "Poser des questions juridiques",
+    "getMoreAiCredits": "Obtenir plus de crédits IA",
+    "manageYourProfile": "Gérer votre profil",
+    "recentConversations": "Conversations récentes",
+    "untitledConversation": "Conversation sans titre",
+    "viewAllConversations": "Voir toutes les conversations",
+    "noConversations": "Aucune conversation pour le moment",
+    "startFirstConsultation": "Commencez votre première consultation juridique !",
+    "startFirstChat": "Premier chat",
+    "purchaseTokensToStart": "Achetez des jetons pour commencer à discuter",
+    "usageAnalytics": "Analyses d'utilisation",
+    "tokenUsageProgress": "Progression d'utilisation des jetons",
+    "used": "utilisé",
+    "remaining": "restant",
+    "totalPurchased": "Total acheté",
+    "conversations": "Conversations",
+    "lowTokenWarning": "Avertissement de jetons faibles",
+    "recentActivity": "Activité récente",
+    "noTokenPurchases": "Aucun achat de jetons pour le moment",
+    "purchaseFirstPackage": "Achetez votre premier pack de jetons pour commencer !",
+    "tokensRemainingWarning": "Il vous reste {count} jetons"
   },
   "chat": {
     "title": "Assistant juridique IA",
@@ -161,7 +202,10 @@
     "tokensRequired": "Des jetons sont requis pour utiliser la fonction de chat. Veuillez acheter des jetons pour continuer.",
     "authenticationError": "Vous devez être connecté pour utiliser la fonction de chat.",
     "checkingAuth": "Vérification de l'authentification...",
-    "untitledConversation": "Conversation sans titre"
+    "untitledConversation": "Conversation sans titre",
+    "insufficientTokens": "Vous avez besoin d'au moins 100 jetons pour envoyer un message.",
+    "buyTokensToChat": "Achetez plus de jetons pour continuer à discuter",
+    "minimumTokensRequired": "Minimum 100 jetons requis"
   },
   "tokens": {
     "buyTokens": "Acheter des jetons",
@@ -181,7 +225,40 @@
     "purchaseSuccessful": "Achat réussi ! Les jetons ont été ajoutés à votre compte.",
     "freeTokensClaimed": "Jetons gratuits réclamés avec succès !",
     "freeTokensAlreadyClaimed": "Vous avez déjà réclamé vos jetons gratuits.",
-    "errorClaimingTokens": "Échec de la réclamation des jetons gratuits"
+    "errorClaimingTokens": "Échec de la réclamation des jetons gratuits",
+    "packages": {
+      "starterPack": "Pack Débutant",
+      "popularPack": "Pack Populaire",
+      "powerPack": "Pack Puissance",
+      "enterprisePack": "Pack Entreprise"
+    },
+    "features": {
+      "neverExpires": "N'expire jamais",
+      "perfectForLightUsage": "Parfait pour un usage léger",
+      "emailSupport": "Support par email",
+      "mostPopularChoice": "Choix le plus populaire",
+      "prioritySupport": "Support prioritaire",
+      "greatForHeavyUsers": "Idéal pour les gros utilisateurs",
+      "maximumValue": "Valeur maximale",
+      "premiumSupport": "Support premium",
+      "bulkDiscountPricing": "Tarification avec remise en gros"
+    },
+    "ui": {
+      "processing": "Traitement en cours...",
+      "buyTokens": "Acheter des jetons",
+      "mostPopular": "Le plus populaire",
+      "save": "Économisez {percentage}",
+      "pleaseLogIn": "Veuillez vous connecter",
+      "mustBeLoggedIn": "Vous devez être connecté pour acheter des jetons.",
+      "goToLogin": "Aller à la connexion",
+      "backToDashboard": "Retour au tableau de bord",
+      "availableTokens": "Jetons disponibles",
+      "totalPurchased": "Total acheté",
+      "buyTokensTitle": "Acheter des jetons",
+      "buyTokensSubtitle": "Achetez des packs de jetons pour les conversations IA. Les jetons n'expirent jamais et peuvent être utilisés à tout moment.",
+      "oneTime": "unique",
+      "tokens": "jetons"
+    }
   },
   "profile": {
     "title": "Paramètres du profil",

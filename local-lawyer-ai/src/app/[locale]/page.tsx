@@ -27,6 +27,8 @@ export default async function HomePage({ params, searchParams }: Props) {
         cta: "Start Your Legal Journey"
       },
       features: {
+        title: "Why Choose Local Lawyer AI?",
+        subtitle: "Advanced AI technology meets legal expertise",
         instantAnswers: {
           title: "Instant Answers",
           description: "Get immediate responses to your legal questions powered by advanced AI"
@@ -50,7 +52,29 @@ export default async function HomePage({ params, searchParams }: Props) {
         freeDesc: "Perfect for occasional questions",
         weeklyDesc: "Most popular for regular users",
         monthlyDesc: "Best value for professionals",
-        yearlyDesc: "Complete enterprise solution"
+        yearlyDesc: "Complete enterprise solution",
+        badges: {
+          free: "Free",
+          mostPopular: "Most Popular",
+          bestValue: "Best Value"
+        },
+        buttons: {
+          getStarted: "Get Started",
+          choosePlan: "Choose Plan",
+          contactSales: "Contact Sales"
+        },
+        features: {
+          tokensMonth: "tokens/month",
+          tokens: "tokens",
+          basicQueries: "Basic legal queries",
+          advancedQueries: "Advanced queries",
+          prioritySupport: "Priority support",
+          complexAnalysis: "Complex legal analysis",
+          documentReview: "Document review",
+          unlimitedTokens: "Unlimited tokens",
+          enterpriseFeatures: "Enterprise features",
+          support24x7: "24/7 support"
+        }
       },
       testimonials: {
         title: "Trusted by Legal Professionals",
@@ -71,7 +95,24 @@ export default async function HomePage({ params, searchParams }: Props) {
           role: "Legal Advisor"
         }
       },
-      footer: { copyright: "© 2024 Local Lawyer AI. All rights reserved." }
+      footer: { 
+        copyright: "© 2024 Local Lawyer AI. All rights reserved.",
+        description: "AI-powered legal assistance based on the most up-to-date local law documents.",
+        links: {
+          privacyPolicy: "Privacy Policy",
+          termsOfService: "Terms of Service",
+          features: "Features",
+          pricing: "Pricing",
+          getStarted: "Get Started",
+          helpCenter: "Help Center",
+          contactUs: "Contact Us",
+          status: "Status"
+        },
+        sections: {
+          product: "Product",
+          support: "Support"
+        }
+      }
     },
     fr: {
       brand: { name: "Local Lawyer AI" },
@@ -82,6 +123,8 @@ export default async function HomePage({ params, searchParams }: Props) {
         cta: "Commencez votre parcours juridique"
       },
       features: {
+        title: "Pourquoi choisir Local Lawyer AI ?",
+        subtitle: "La technologie IA avancée rencontre l'expertise juridique",
         instantAnswers: {
           title: "Réponses instantanées",
           description: "Obtenez des réponses immédiates à vos questions juridiques grâce à une IA avancée"
@@ -105,7 +148,29 @@ export default async function HomePage({ params, searchParams }: Props) {
         freeDesc: "Parfait pour les questions occasionnelles",
         weeklyDesc: "Le plus populaire pour les utilisateurs réguliers",
         monthlyDesc: "Meilleur rapport qualité-prix pour les professionnels",
-        yearlyDesc: "Solution entreprise complète"
+        yearlyDesc: "Solution entreprise complète",
+        badges: {
+          free: "Gratuit",
+          mostPopular: "Le plus populaire",
+          bestValue: "Meilleure valeur"
+        },
+        buttons: {
+          getStarted: "Commencer",
+          choosePlan: "Choisir le plan",
+          contactSales: "Contacter les ventes"
+        },
+        features: {
+          tokensMonth: "tokens/mois",
+          tokens: "tokens",
+          basicQueries: "Requêtes juridiques de base",
+          advancedQueries: "Requêtes avancées",
+          prioritySupport: "Support prioritaire",
+          complexAnalysis: "Analyse juridique complexe",
+          documentReview: "Révision de documents",
+          unlimitedTokens: "Tokens illimités",
+          enterpriseFeatures: "Fonctionnalités entreprise",
+          support24x7: "Support 24/7"
+        }
       },
       testimonials: {
         title: "Approuvé par les professionnels du droit",
@@ -126,7 +191,24 @@ export default async function HomePage({ params, searchParams }: Props) {
           role: "Conseillère juridique"
         }
       },
-      footer: { copyright: "© 2024 Local Lawyer AI. Tous droits réservés." }
+      footer: { 
+        copyright: "© 2024 Local Lawyer AI. Tous droits réservés.",
+        description: "Assistance juridique alimentée par l'IA basée sur les documents de loi locaux les plus récents.",
+        links: {
+          privacyPolicy: "Politique de confidentialité",
+          termsOfService: "Conditions d'utilisation",
+          features: "Fonctionnalités",
+          pricing: "Tarification",
+          getStarted: "Commencer",
+          helpCenter: "Centre d'aide",
+          contactUs: "Nous contacter",
+          status: "Statut"
+        },
+        sections: {
+          product: "Produit",
+          support: "Support"
+        }
+      }
     }
   };
 
@@ -198,10 +280,10 @@ export default async function HomePage({ params, searchParams }: Props) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                Why Choose Local Lawyer AI?
+                {t.features.title}
               </h2>
               <p className="mt-4 text-xl text-gray-600">
-                Advanced AI technology meets legal expertise
+                {t.features.subtitle}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
@@ -259,7 +341,7 @@ export default async function HomePage({ params, searchParams }: Props) {
               {/* Starter Pack */}
               <div className="bg-white rounded-2xl p-8 shadow-lg border border-green-200 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
                 <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-bl-lg">
-                  Free
+                  {t.pricing.badges.free}
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.free}</h3>
@@ -268,15 +350,15 @@ export default async function HomePage({ params, searchParams }: Props) {
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                      <span>10K tokens/month</span>
+                      <span>10K {t.pricing.features.tokensMonth}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                      <span>Basic legal queries</span>
+                      <span>{t.pricing.features.basicQueries}</span>
                     </li>
                   </ul>
                   <Link href={`/${locale}/login`} className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
-                    Get Started
+                    {t.pricing.buttons.getStarted}
                   </Link>
                 </div>
               </div>
@@ -284,7 +366,7 @@ export default async function HomePage({ params, searchParams }: Props) {
               {/* Popular Plan */}
               <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-500 relative overflow-hidden group hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
                 <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 text-sm font-medium rounded-bl-lg">
-                  Most Popular
+                  {t.pricing.badges.mostPopular}
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.weekly}</h3>
@@ -293,19 +375,19 @@ export default async function HomePage({ params, searchParams }: Props) {
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-blue-500 mr-2" />
-                      <span>50K tokens</span>
+                      <span>50K {t.pricing.features.tokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-blue-500 mr-2" />
-                      <span>Advanced queries</span>
+                      <span>{t.pricing.features.advancedQueries}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-blue-500 mr-2" />
-                      <span>Priority support</span>
+                      <span>{t.pricing.features.prioritySupport}</span>
                     </li>
                   </ul>
                   <Link href={`/${locale}/login`} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
-                    Choose Plan
+                    {t.pricing.buttons.choosePlan}
                   </Link>
                 </div>
               </div>
@@ -313,7 +395,7 @@ export default async function HomePage({ params, searchParams }: Props) {
               {/* Power Plan */}
               <div className="bg-white rounded-2xl p-8 shadow-lg border border-purple-200 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
                 <div className="absolute top-0 right-0 bg-purple-500 text-white px-3 py-1 text-sm font-medium rounded-bl-lg">
-                  Best Value
+                  {t.pricing.badges.bestValue}
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.monthly}</h3>
@@ -322,19 +404,19 @@ export default async function HomePage({ params, searchParams }: Props) {
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
-                      <span>200K tokens</span>
+                      <span>200K {t.pricing.features.tokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
-                      <span>Complex legal analysis</span>
+                      <span>{t.pricing.features.complexAnalysis}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
-                      <span>Document review</span>
+                      <span>{t.pricing.features.documentReview}</span>
                     </li>
                   </ul>
                   <Link href={`/${locale}/login`} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
-                    Choose Plan
+                    {t.pricing.buttons.choosePlan}
                   </Link>
                 </div>
               </div>
@@ -348,19 +430,19 @@ export default async function HomePage({ params, searchParams }: Props) {
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>Unlimited tokens</span>
+                      <span>{t.pricing.features.unlimitedTokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>Enterprise features</span>
+                      <span>{t.pricing.features.enterpriseFeatures}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>24/7 support</span>
+                      <span>{t.pricing.features.support24x7}</span>
                     </li>
                   </ul>
                   <Link href={`/${locale}/login`} className="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
-                    Contact Sales
+                    {t.pricing.buttons.contactSales}
                   </Link>
                 </div>
               </div>
@@ -448,31 +530,31 @@ export default async function HomePage({ params, searchParams }: Props) {
                 <span className="ml-2 text-xl font-bold text-white">{t.brand.name}</span>
               </div>
               <p className="text-gray-400 mb-4">
-                AI-powered legal assistance based on the most up-to-date local law documents.
+                {t.footer.description}
               </p>
               <div className="flex space-x-4">
                 <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Privacy Policy
+                  {t.footer.links.privacyPolicy}
                 </Link>
                 <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                  Terms of Service
+                  {t.footer.links.termsOfService}
                 </Link>
               </div>
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-4">Product</h3>
+              <h3 className="text-white font-semibold mb-4">{t.footer.sections.product}</h3>
               <ul className="space-y-2">
-                <li><Link href="#features" className="text-gray-400 hover:text-white transition-colors">Features</Link></li>
-                <li><Link href="#pricing" className="text-gray-400 hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link href={`/${locale}/login`} className="text-gray-400 hover:text-white transition-colors">Get Started</Link></li>
+                <li><Link href="#features" className="text-gray-400 hover:text-white transition-colors">{t.footer.links.features}</Link></li>
+                <li><Link href="#pricing" className="text-gray-400 hover:text-white transition-colors">{t.footer.links.pricing}</Link></li>
+                <li><Link href={`/${locale}/login`} className="text-gray-400 hover:text-white transition-colors">{t.footer.links.getStarted}</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-4">Support</h3>
+              <h3 className="text-white font-semibold mb-4">{t.footer.sections.support}</h3>
               <ul className="space-y-2">
-                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Help Center</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Contact Us</Link></li>
-                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">Status</Link></li>
+                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">{t.footer.links.helpCenter}</Link></li>
+                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">{t.footer.links.contactUs}</Link></li>
+                <li><Link href="#" className="text-gray-400 hover:text-white transition-colors">{t.footer.links.status}</Link></li>
               </ul>
             </div>
           </div>

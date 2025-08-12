@@ -54,7 +54,17 @@
     "trusted": "Trusted",
     "signInFailed": "Sign in failed",
     "failedToSignInWithGoogle": "Failed to sign in with Google",
-    "failedToSignInWithFacebook": "Failed to sign in with Facebook"
+    "failedToSignInWithFacebook": "Failed to sign in with Facebook",
+    "legalAssistantTagline": "Legal AI Assistant",
+    "aiPoweredLegalAssistance": "AI-Powered Legal Assistance",
+    "accessDescription": "Access your personal legal AI assistant trained on local law documents",
+    "secureLoginDescription": "Enterprise-grade security with OAuth 2.0",
+    "tenKPlusUsers": "10k+ Users",
+    "secure": "Secure",
+    "aiPowered": "AI-Powered",
+    "uptimeStats": "99.9% Uptime",
+    "isoCertified": "ISO 27001 Certified",
+    "gdprCompliant": "GDPR Compliant"
   },
   "navigation": {
     "home": "Home",
@@ -135,7 +145,38 @@
     "tokens": "tokens",
     "freeStarterKit": "Free Starter Kit",
     "cardPayment": "Card Payment",
-    "memberSince": "Member since"
+    "memberSince": "Member since",
+    "signIn": "Sign In",
+    "buyTokensButton": "Buy Tokens",
+    "startChattingButton": "Start Chatting",
+    "tokensUsedToday": "Tokens Used Today",
+    "avgTokensPerChat": "Avg. Tokens/Chat",
+    "accountStatus": "Account Status",
+    "active": "Active",
+    "freeTier": "Free Tier",
+    "quickActions": "Quick Actions",
+    "startNewChat": "Start New Chat",
+    "askLegalQuestions": "Ask legal questions",
+    "getMoreAiCredits": "Get more AI credits",
+    "manageYourProfile": "Manage your profile",
+    "recentConversations": "Recent Conversations",
+    "untitledConversation": "Untitled Conversation",
+    "viewAllConversations": "View All Conversations",
+    "noConversations": "No conversations yet",
+    "startFirstConsultation": "Start your first legal consultation!",
+    "startFirstChat": "Start First Chat",
+    "purchaseTokensToStart": "Purchase tokens to start chatting",
+    "usageAnalytics": "Usage Analytics",
+    "tokenUsageProgress": "Token Usage Progress",
+    "used": "used",
+    "remaining": "remaining",
+    "totalPurchased": "Total Purchased",
+    "conversations": "Conversations",
+    "lowTokenWarning": "Low Token Warning",
+    "recentActivity": "Recent Activity",
+    "noTokenPurchases": "No token purchases yet",
+    "purchaseFirstPackage": "Purchase your first token package to get started!",
+    "tokensRemainingWarning": "You have {count} tokens remaining"
   },
   "chat": {
     "title": "Legal AI Assistant",
@@ -161,7 +202,10 @@
     "tokensRequired": "Tokens are required to use the chat feature. Please purchase tokens to continue.",
     "authenticationError": "You must be logged in to use the chat feature.",
     "checkingAuth": "Checking authentication...",
-    "untitledConversation": "Untitled Conversation"
+    "untitledConversation": "Untitled Conversation",
+    "insufficientTokens": "You need at least 100 tokens to send a message.",
+    "buyTokensToChat": "Buy more tokens to continue chatting",
+    "minimumTokensRequired": "Minimum 100 tokens required"
   },
   "tokens": {
     "buyTokens": "Buy Tokens",
@@ -181,7 +225,40 @@
     "purchaseSuccessful": "Purchase successful! Tokens have been added to your account.",
     "freeTokensClaimed": "Free tokens claimed successfully!",
     "freeTokensAlreadyClaimed": "You have already claimed your free tokens.",
-    "errorClaimingTokens": "Failed to claim free tokens"
+    "errorClaimingTokens": "Failed to claim free tokens",
+    "packages": {
+      "starterPack": "Starter Pack",
+      "popularPack": "Popular Pack", 
+      "powerPack": "Power Pack",
+      "enterprisePack": "Enterprise Pack"
+    },
+    "features": {
+      "neverExpires": "Never expires",
+      "perfectForLightUsage": "Perfect for light usage",
+      "emailSupport": "Email support",
+      "mostPopularChoice": "Most popular choice",
+      "prioritySupport": "Priority support",
+      "greatForHeavyUsers": "Great for heavy users",
+      "maximumValue": "Maximum value",
+      "premiumSupport": "Premium support",
+      "bulkDiscountPricing": "Bulk discount pricing"
+    },
+    "ui": {
+      "processing": "Processing...",
+      "buyTokens": "Buy Tokens",
+      "mostPopular": "Most Popular",
+      "save": "Save {percentage}",
+      "pleaseLogIn": "Please Log In",
+      "mustBeLoggedIn": "You must be logged in to purchase tokens.",
+      "goToLogin": "Go to Login",
+      "backToDashboard": "Back to Dashboard",
+      "availableTokens": "Available Tokens",
+      "totalPurchased": "Total Purchased",
+      "buyTokensTitle": "Buy Tokens",
+      "buyTokensSubtitle": "Purchase token packages for AI conversations. Tokens never expire and can be used anytime.",
+      "oneTime": "one-time",
+      "tokens": "tokens"
+    }
   },
   "profile": {
     "title": "Profile Settings",

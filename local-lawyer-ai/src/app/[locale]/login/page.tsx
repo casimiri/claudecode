@@ -92,7 +92,7 @@ export default function LoginPage() {
             </div>
             <div className="text-white">
               <h1 className="text-xl font-bold">{t('common.appName')}</h1>
-              <p className="text-xs text-gray-300">Legal AI Assistant</p>
+              <p className="text-xs text-gray-300">{t('auth.legalAssistantTagline')}</p>
             </div>
           </Link>
           <div className="flex items-center space-x-4">
@@ -111,7 +111,7 @@ export default function LoginPage() {
           <div className="text-center mb-12">
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 backdrop-blur-sm border border-white/10 rounded-full px-6 py-3 mb-8">
               <Sparkles className="h-5 w-5 text-blue-400" />
-              <span className="text-sm text-gray-300 font-medium">AI-Powered Legal Assistance</span>
+              <span className="text-sm text-gray-300 font-medium">{t('auth.aiPoweredLegalAssistance')}</span>
             </div>
             <h2 className="text-4xl sm:text-5xl font-bold text-white mb-4">
               {t('auth.loginPageTitle')}
@@ -120,7 +120,7 @@ export default function LoginPage() {
               {t('auth.loginPageSubtitle')}
             </p>
             <p className="text-sm text-gray-400">
-              Access your personal legal AI assistant trained on local law documents
+              {t('auth.accessDescription')}
             </p>
           </div>
 
@@ -173,7 +173,7 @@ export default function LoginPage() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-green-300">{t('auth.secureLogin')}</p>
-                    <p className="text-xs text-green-200/80">Enterprise-grade security with OAuth 2.0</p>
+                    <p className="text-xs text-green-200/80">{t('auth.secureLoginDescription')}</p>
                   </div>
                 </div>
               </div>
@@ -181,15 +181,15 @@ export default function LoginPage() {
               <div className="grid grid-cols-3 gap-4 text-center">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
                   <Users className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-300 font-medium">10k+ Users</p>
+                  <p className="text-xs text-gray-300 font-medium">{t('auth.tenKPlusUsers')}</p>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
                   <Shield className="h-8 w-8 text-green-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-300 font-medium">Secure</p>
+                  <p className="text-xs text-gray-300 font-medium">{t('auth.secure')}</p>
                 </div>
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors duration-200">
                   <Sparkles className="h-8 w-8 text-purple-400 mx-auto mb-2" />
-                  <p className="text-xs text-gray-300 font-medium">AI-Powered</p>
+                  <p className="text-xs text-gray-300 font-medium">{t('auth.aiPowered')}</p>
                 </div>
               </div>
             </div>
@@ -214,15 +214,15 @@ export default function LoginPage() {
             <div className="inline-flex items-center space-x-8 text-sm text-gray-400">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span>99.9% Uptime</span>
+                <span>{t('auth.uptimeStats')}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse animation-delay-500"></div>
-                <span>ISO 27001 Certified</span>
+                <span>{t('auth.isoCertified')}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse animation-delay-1000"></div>
-                <span>GDPR Compliant</span>
+                <span>{t('auth.gdprCompliant')}</span>
               </div>
             </div>
           </div>

@@ -1,27 +1,30 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getCurrentUser } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import { toast } from 'react-hot-toast'
-import { Check, Loader2, Crown, Zap, ArrowLeft, Wallet } from 'lucide-react'
+import { Check, Loader2, Crown, Zap, ArrowLeft, Wallet, Scale } from 'lucide-react'
 import Link from 'next/link'
+import LanguageSwitcher from '../../../components/LanguageSwitcher'
+import ThemeToggle from '../../../components/ThemeToggle'
 
-// Token package configurations
-const TOKEN_PACKAGES = [
+// Token package configurations generator
+const getTokenPackages = (t: any) => [
   {
     id: 'starter',
-    name: 'Starter Pack',
+    name: t('tokens.packages.starterPack'),
     price: '$9',
     tokens: 10000,
-    period: 'one-time',
+    period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_STARTER,
     features: [
-      '10,000 tokens',
-      'Never expires',
-      'Perfect for light usage',
-      'Email support'
+      `10,000 ${t('tokens.ui.tokens')}`,
+      t('tokens.features.neverExpires'),
+      t('tokens.features.perfectForLightUsage'),
+      t('tokens.features.emailSupport')
     ],
     popular: false,
     color: 'blue',
@@ -30,16 +33,16 @@ const TOKEN_PACKAGES = [
   },
   {
     id: 'popular',
-    name: 'Popular Pack',
+    name: t('tokens.packages.popularPack'),
     price: '$39',
     tokens: 50000,
-    period: 'one-time',
+    period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_POPULAR,
     features: [
-      '50,000 tokens',
-      'Never expires',
-      'Most popular choice',
-      'Priority support',
+      `50,000 ${t('tokens.ui.tokens')}`,
+      t('tokens.features.neverExpires'),
+      t('tokens.features.mostPopularChoice'),
+      t('tokens.features.prioritySupport'),
       'Save 13% vs Starter'
     ],
     popular: true,
@@ -49,16 +52,16 @@ const TOKEN_PACKAGES = [
   },
   {
     id: 'power',
-    name: 'Power Pack',
+    name: t('tokens.packages.powerPack'),
     price: '$99',
     tokens: 150000,
-    period: 'one-time',
+    period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_POWER,
     features: [
-      '150,000 tokens',
-      'Never expires',
-      'Great for heavy users',
-      'Priority support',
+      `150,000 ${t('tokens.ui.tokens')}`,
+      t('tokens.features.neverExpires'),
+      t('tokens.features.greatForHeavyUsers'),
+      t('tokens.features.prioritySupport'),
       'Save 27% vs Starter'
     ],
     popular: false,
@@ -68,18 +71,18 @@ const TOKEN_PACKAGES = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise Pack',
+    name: t('tokens.packages.enterprisePack'),
     price: '$299',
     tokens: 500000,
-    period: 'one-time',
+    period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_ENTERPRISE,
     features: [
-      '500,000 tokens',
-      'Never expires',
-      'Maximum value',
-      'Premium support',
+      `500,000 ${t('tokens.ui.tokens')}`,
+      t('tokens.features.neverExpires'),
+      t('tokens.features.maximumValue'),
+      t('tokens.features.premiumSupport'),
       'Save 33% vs Starter',
-      'Bulk discount pricing'
+      t('tokens.features.bulkDiscountPricing')
     ],
     popular: false,
     color: 'yellow',
@@ -110,25 +113,26 @@ interface TokenPackageCardProps {
   package: TokenPackage
   onPurchase: (pkg: TokenPackage) => void
   isProcessing: string | null
+  t: any
 }
 
-const TokenPackageCard = ({ package: tokenPackage, onPurchase, isProcessing }: TokenPackageCardProps) => {
+const TokenPackageCard = ({ package: tokenPackage, onPurchase, isProcessing, t }: TokenPackageCardProps) => {
   const isProcessingThisPackage = isProcessing === tokenPackage.id
 
   const getButtonState = () => {
     return {
       disabled: isProcessingThisPackage,
-      text: isProcessingThisPackage ? 'Processing...' : 'Buy Tokens',
+      text: isProcessingThisPackage ? t('tokens.ui.processing') : t('tokens.ui.buyTokens'),
       className: `bg-${tokenPackage.color}-600 hover:bg-${tokenPackage.color}-700 text-white ${isProcessingThisPackage ? 'opacity-75 cursor-wait' : ''}`
     }
   }
 
   const buttonState = getButtonState()
 
-  const cardClass = `relative rounded-lg border-2 p-6 shadow-sm transition-all duration-200 ${
+  const cardClass = `relative rounded-lg border-2 p-6 shadow-sm transition-all duration-200 bg-white dark:bg-gray-800 ${
     tokenPackage.popular
-      ? 'border-purple-200 shadow-lg hover:shadow-xl hover:border-purple-300'
-      : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+      ? 'border-purple-200 dark:border-purple-700 shadow-lg hover:shadow-xl hover:border-purple-300 dark:hover:border-purple-600'
+      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
   }`
 
   return (
@@ -138,7 +142,7 @@ const TokenPackageCard = ({ package: tokenPackage, onPurchase, isProcessing }: T
         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
           <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center">
             <Crown className="w-3 h-3 mr-1" />
-            Most Popular
+            {t('tokens.ui.mostPopular')}
           </span>
         </div>
       )}
@@ -147,21 +151,21 @@ const TokenPackageCard = ({ package: tokenPackage, onPurchase, isProcessing }: T
       {tokenPackage.savings && (
         <div className="absolute top-4 right-4">
           <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
-            Save {tokenPackage.savings}
+            {t('tokens.ui.save', { percentage: tokenPackage.savings })}
           </span>
         </div>
       )}
 
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-gray-900">{tokenPackage.name}</h3>
+        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{tokenPackage.name}</h3>
         <div className="mt-4">
-          <span className="text-4xl font-bold text-gray-900">{tokenPackage.price}</span>
-          <span className="text-gray-600 ml-2">{tokenPackage.period}</span>
+          <span className="text-4xl font-bold text-gray-900 dark:text-white">{tokenPackage.price}</span>
+          <span className="text-gray-600 dark:text-gray-300 ml-2">{tokenPackage.period}</span>
         </div>
         <div className="mt-2">
           <span className="text-lg font-semibold text-blue-600 flex items-center justify-center">
             <Zap className="w-4 h-4 mr-1" />
-            {tokenPackage.tokens.toLocaleString()} tokens
+            {tokenPackage.tokens.toLocaleString()} {t('tokens.ui.tokens')}
           </span>
         </div>
       </div>
@@ -170,7 +174,7 @@ const TokenPackageCard = ({ package: tokenPackage, onPurchase, isProcessing }: T
         {tokenPackage.features.map((feature, index) => (
           <li key={index} className="flex items-start">
             <Check className="h-5 w-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-            <span className="text-gray-600">{feature}</span>
+            <span className="text-gray-600 dark:text-gray-300">{feature}</span>
           </li>
         ))}
       </ul>
@@ -205,6 +209,9 @@ export default function TokenPurchasePage() {
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
+  const params = useParams()
+  const locale = params?.locale as string
+  const t = useTranslations()
 
   const fetchTokenStats = async () => {
     try {
@@ -280,11 +287,11 @@ export default function TokenPurchasePage() {
 
       processSuccessfulPurchase()
       // Clear the query parameters
-      router.replace('/en/buy-tokens')
+      router.replace(`/${locale}/buy-tokens`)
     } else if (canceled === 'true') {
       toast.error('Token purchase was canceled.')
       // Clear the query parameters
-      router.replace('/en/buy-tokens')
+      router.replace(`/${locale}/buy-tokens`)
     }
   }, [searchParams, router])
 
@@ -346,7 +353,7 @@ export default function TokenPurchasePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <LoadingSpinner size="w-8 h-8" />
       </div>
     )
@@ -355,15 +362,15 @@ export default function TokenPurchasePage() {
   // Show login message if user is not authenticated
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please Log In</h1>
-          <p className="text-gray-600 mb-6">You must be logged in to purchase tokens.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('tokens.ui.pleaseLogIn')}</h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">{t('tokens.ui.mustBeLoggedIn')}</p>
           <button
-            onClick={() => router.push('/en/login')}
+            onClick={() => router.push(`/${locale}/login`)}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Go to Login
+            {t('tokens.ui.goToLogin')}
           </button>
         </div>
       </div>
@@ -371,21 +378,29 @@ export default function TokenPurchasePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Navigation and Token Balance */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center space-x-4">
-            <Link 
-              href="/en/dashboard"
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
+            <Link href={`/${locale}`} className="flex items-center">
+              <Scale className="h-8 w-8 text-blue-600" />
+              <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">{t('common.appName')}</span>
             </Link>
             
+            <Link 
+              href={`/${locale}/dashboard`}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t('tokens.ui.backToDashboard')}
+            </Link>
+            
+            <ThemeToggle />
+            <LanguageSwitcher />
+            
             {user && (
-              <div className="bg-white rounded-lg px-4 py-3 shadow-sm border border-gray-200">
+              <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-sm font-medium text-blue-600">
@@ -393,10 +408,10 @@ export default function TokenPurchasePage() {
                     </span>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {user.user_metadata?.full_name || user.email}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       {user.email}
                     </p>
                   </div>
@@ -407,23 +422,23 @@ export default function TokenPurchasePage() {
           
           {tokenStats && (
             <div className="flex items-center space-x-4">
-              <div className="bg-white rounded-lg px-6 py-3 shadow-sm border border-gray-200">
+              <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-3 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                   <Wallet className="w-5 h-5 text-blue-600" />
                   <div>
-                    <p className="text-sm text-gray-500">Available Tokens</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('tokens.ui.availableTokens')}</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {(tokenStats.tokensRemaining || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-lg px-6 py-3 shadow-sm border border-gray-200">
+              <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-3 shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-2">
                   <Zap className="w-5 h-5 text-green-600" />
                   <div>
-                    <p className="text-sm text-gray-500">Total Purchased</p>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('tokens.ui.totalPurchased')}</p>
+                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
                       {(tokenStats.totalTokensPurchased || 0).toLocaleString()}
                     </p>
                   </div>
@@ -435,20 +450,21 @@ export default function TokenPurchasePage() {
 
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Buy Tokens</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Purchase token packages for AI conversations. Tokens never expire and can be used anytime.
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">{t('tokens.ui.buyTokensTitle')}</h1>
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            {t('tokens.ui.buyTokensSubtitle')}
           </p>
         </div>
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {TOKEN_PACKAGES.map((tokenPackage) => (
+          {getTokenPackages(t).map((tokenPackage) => (
             <TokenPackageCard
               key={tokenPackage.id}
               package={tokenPackage}
               onPurchase={handleTokenPurchase}
               isProcessing={processingPackage}
+              t={t}
             />
           ))}
         </div>
