@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Moon, Sun, Menu, X, CreditCard } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Menu, X, CreditCard } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { getCurrentUser } from '../../../../lib/auth'
@@ -10,6 +10,7 @@ import { User } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import LanguageSwitcher from '../../../components/LanguageSwitcher'
+import ThemeToggle from '../../../components/ThemeToggle'
 
 interface Message {
   id: string
@@ -368,11 +369,7 @@ export default function ChatPage() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
-  const toggleDarkMode = () => {
-    const newDarkMode = !darkMode
-    setDarkMode(newDarkMode)
-    localStorage.setItem('darkMode', JSON.stringify(newDarkMode))
-  }
+  // Removed: toggleDarkMode - using new theme system
 
   // Show loading while checking authentication
   if (!authChecked) {
@@ -500,23 +497,14 @@ export default function ChatPage() {
               <Scale className="h-6 w-6 text-blue-600 mr-2" />
               <h1 className={`text-lg font-semibold ${textClass}`}>{t('chat.title')}</h1>
               
+              {/* Theme Toggle */}
+              <div className="ml-4">
+                <ThemeToggle />
+              </div>
+              
               {/* Language Switcher */}
               <div className="ml-4">
                 <LanguageSwitcher />
-              </div>
-              
-              {/* Theme toggle */}
-              <div className="ml-4">
-                <button
-                  onClick={toggleDarkMode}
-                  className={`flex items-center px-3 py-1 text-sm border rounded hover:bg-gray-50 ${
-                    darkMode 
-                      ? 'text-gray-300 hover:text-gray-100 border-gray-600 hover:bg-gray-700' 
-                      : 'text-gray-600 hover:text-gray-900 border-gray-300'
-                  }`}
-                >
-                  {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                </button>
               </div>
             </div>
           
