@@ -2,15 +2,16 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Menu, X, CreditCard } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Menu, X, CreditCard, LogOut, ChevronDown, Settings, User as UserIcon } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
-import { getCurrentUser } from '../../../../lib/auth'
+import { getCurrentUser, signOut } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import LanguageSwitcher from '../../../components/LanguageSwitcher'
 import ThemeToggle from '../../../components/ThemeToggle'
+import { useTheme } from '../../../contexts/ThemeContext'
 
 interface Message {
   id: string
@@ -51,14 +52,26 @@ export default function ChatPage() {
   const [loadingConversation, setLoadingConversation] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null)
-  const [darkMode, setDarkMode] = useState(false)
+  const { theme } = useTheme()
+  const darkMode = theme === 'dark'
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      window.location.href = '/'
+    } catch {
+      // Silent error handling - user will see if sign out failed
+    }
   }
 
 
@@ -234,6 +247,20 @@ export default function ChatPage() {
     checkAuth()
   }, [locale, searchParams, startNewConversation])
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [userMenuOpen])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!input.trim() || loading) return
@@ -348,13 +375,6 @@ export default function ChatPage() {
   }
 
 
-  // Initialize dark mode from localStorage
-  useEffect(() => {
-    const savedDarkMode = localStorage.getItem('darkMode')
-    if (savedDarkMode !== null) {
-      setDarkMode(JSON.parse(savedDarkMode))
-    }
-  }, [])
 
   // Initialize sidebar visibility based on screen size
   useEffect(() => {
@@ -516,22 +536,81 @@ export default function ChatPage() {
           {/* User info and token stats */}
           <div className="flex items-center space-x-4">
             {user && (
-              <div className={`bg-gray-50 rounded-lg px-4 py-2 shadow-sm border ${darkMode ? 'bg-gray-700 border-gray-600' : 'border-gray-200'}`}>
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-600">
-                      {user.email?.charAt(0).toUpperCase()}
-                    </span>
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className={`bg-gray-50 rounded-lg px-4 py-2 shadow-sm border transition-colors hover:bg-gray-100 ${
+                    darkMode ? 'bg-gray-700 border-gray-600 hover:bg-gray-600' : 'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-blue-600">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <p className={`text-sm font-medium ${textClass}`}>
+                        {user.user_metadata?.full_name || user.email}
+                      </p>
+                      <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {user.email}
+                      </p>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''} ${
+                      darkMode ? 'text-gray-400' : 'text-gray-600'
+                    }`} />
                   </div>
-                  <div>
-                    <p className={`text-sm font-medium ${textClass}`}>
-                      {user.user_metadata?.full_name || user.email}
-                    </p>
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {user.email}
-                    </p>
+                </button>
+                
+                {userMenuOpen && (
+                  <div className={`absolute right-0 top-full mt-2 w-56 rounded-md shadow-lg py-1 z-50 border ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-600' 
+                      : 'bg-white border-gray-200'
+                  }`}>
+                    <div className={`px-4 py-3 border-b ${darkMode ? 'border-gray-600' : 'border-gray-100'}`}>
+                      <div className={`text-sm font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {user.user_metadata?.full_name || 'User'}
+                      </div>
+                      <div className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        {user.email}
+                      </div>
+                      <div className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {t('dashboard.memberSince')} {new Date(user.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/${locale}/dashboard/profile`}
+                      className={`flex items-center px-4 py-2 text-sm transition-colors ${
+                        darkMode 
+                          ? 'text-gray-300 hover:bg-gray-700' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      {t('navigation.accountSettings')}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      className={`flex items-center w-full px-4 py-2 text-sm transition-colors ${
+                        darkMode 
+                          ? 'text-gray-300 hover:bg-gray-700' 
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {t('auth.signOut')}
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             )}
             

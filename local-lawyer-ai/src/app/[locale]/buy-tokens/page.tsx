@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { getCurrentUser } from '../../../../lib/auth'
+import { getCurrentUser, signOut } from '../../../../lib/auth'
 import { User } from '@supabase/supabase-js'
 import { toast } from 'react-hot-toast'
-import { Check, Loader2, Crown, Zap, ArrowLeft, Wallet, Scale } from 'lucide-react'
+import { Check, Loader2, Crown, Zap, ArrowLeft, Wallet, Scale, LogOut, ChevronDown, Settings, User as UserIcon } from 'lucide-react'
 import Link from 'next/link'
 import LanguageSwitcher from '../../../components/LanguageSwitcher'
 import ThemeToggle from '../../../components/ThemeToggle'
@@ -207,11 +207,22 @@ export default function TokenPurchasePage() {
   const [loading, setLoading] = useState(true)
   const [processingPackage, setProcessingPackage] = useState<string | null>(null)
   const [tokenStats, setTokenStats] = useState<TokenStats | null>(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const params = useParams()
   const locale = params?.locale as string
   const t = useTranslations()
+  const userMenuRef = useRef<HTMLDivElement>(null)
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      window.location.href = '/'
+    } catch {
+      // Silent error handling - user will see if sign out failed
+    }
+  }
 
   const fetchTokenStats = async () => {
     try {
@@ -294,6 +305,20 @@ export default function TokenPurchasePage() {
       router.replace(`/${locale}/buy-tokens`)
     }
   }, [searchParams, router])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
+    }
+    
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [userMenuOpen])
 
   const handleTokenPurchase = async (tokenPackage: TokenPackage) => {
     if (!user) {
@@ -400,22 +425,65 @@ export default function TokenPurchasePage() {
             <LanguageSwitcher />
             
             {user && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-medium text-blue-600">
-                      {user.email?.charAt(0).toUpperCase()}
-                    </span>
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="bg-white dark:bg-gray-800 rounded-lg px-4 py-3 shadow-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-medium text-blue-600">
+                        {user.email?.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {user.user_metadata?.full_name || user.email}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </p>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 transition-transform text-gray-600 dark:text-gray-400 ${userMenuOpen ? 'rotate-180' : ''}`} />
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {user.user_metadata?.full_name || user.email}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {user.email}
-                    </p>
+                </button>
+                
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-600">
+                    <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-600">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {user.user_metadata?.full_name || 'User'}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {user.email}
+                      </div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        {t('dashboard.memberSince')} {new Date(user.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short'
+                        })}
+                      </div>
+                    </div>
+                    <Link
+                      href={`/${locale}/dashboard/profile`}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      {t('navigation.accountSettings')}
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      {t('auth.signOut')}
+                    </button>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
