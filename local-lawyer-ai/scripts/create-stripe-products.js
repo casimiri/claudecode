@@ -45,36 +45,28 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 const TOKEN_PRODUCTS = [
   {
-    id: 'tokens-starter',
+    id: 'tokens-starter-v2',
     name: 'Starter Token Pack',
-    description: '10,000 AI tokens for legal consultations',
-    tokens: 10000,
-    price: 900, // $9.00 in cents
-    lookup_key: 'price_token_starter_10k'
+    description: '1,000,000 AI tokens for legal consultations',
+    tokens: 1000000,
+    price: 500, // $5.00 in cents
+    lookup_key: 'price_token_starter_1m_v2'
   },
   {
-    id: 'tokens-popular',
+    id: 'tokens-popular-v2',
     name: 'Popular Token Pack',
-    description: '50,000 AI tokens for legal consultations - Most Popular!',
-    tokens: 50000,
-    price: 3900, // $39.00 in cents
-    lookup_key: 'price_token_popular_50k'
+    description: '3,000,000 AI tokens for legal consultations - Most Popular!',
+    tokens: 3000000,
+    price: 1000, // $10.00 in cents
+    lookup_key: 'price_token_popular_3m_v2'
   },
   {
-    id: 'tokens-power',
+    id: 'tokens-power-v2',
     name: 'Power Token Pack',
-    description: '150,000 AI tokens for legal consultations',
-    tokens: 150000,
-    price: 9900, // $99.00 in cents
-    lookup_key: 'price_token_power_150k'
-  },
-  {
-    id: 'tokens-enterprise',
-    name: 'Enterprise Token Pack',
-    description: '500,000 AI tokens for legal consultations - Best Value!',
-    tokens: 500000,
-    price: 29900, // $299.00 in cents
-    lookup_key: 'price_token_enterprise_500k'
+    description: '7,000,000 AI tokens for legal consultations - Best Value!',
+    tokens: 7000000,
+    price: 2000, // $20.00 in cents
+    lookup_key: 'price_token_power_7m_v2'
   }
 ];
 

@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Local Lawyer AI",
+    "appName": "Legal AI | RCI",
     "loading": "Loading...",
     "error": "Error",
     "success": "Success",
@@ -330,7 +330,7 @@
     "passwordsDoNotMatch": "Passwords do not match"
   },
   "footer": {
-    "allRightsReserved": "© 2024 Local Lawyer AI. All rights reserved.",
+    "allRightsReserved": "© 2024 Legal AI | RCI. All rights reserved.",
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
     "contactUs": "Contact Us"

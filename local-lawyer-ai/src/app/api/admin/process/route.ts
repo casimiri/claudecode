@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '../../../../../lib/supabase'
 import { createEmbedding } from '../../../../../lib/openai'
+import { fetchAndProcessUrl } from '../../../../../lib/urlProcessor'
 import jwt from 'jsonwebtoken'
 // Dynamic imports to avoid build issues
 // import pdfParse from 'pdf-parse'
@@ -94,12 +95,40 @@ async function extractTextFromFile(filePath: string, contentType: string): Promi
   }
 }
 
+async function extractTextFromUrl(url: string): Promise<{ text: string; metadata: any }> {
+  console.log('Fetching content from URL:', url)
+  
+  try {
+    const result = await fetchAndProcessUrl(url)
+    
+    return {
+      text: result.content,
+      metadata: {
+        title: result.title,
+        description: result.description,
+        contentType: result.contentType,
+        url: result.url,
+        fetchedAt: new Date().toISOString()
+      }
+    }
+  } catch (error: any) {
+    console.error('URL processing failed:', error.message)
+    throw new Error(`Failed to fetch content from URL: ${error.message}`)
+  }
+}
+
 export async function POST(request: NextRequest) {
+  console.log('Process endpoint called')
+  let documentId: string | null = null
   try {
     verifyAdminToken(request)
-    const { documentId } = await request.json()
+    const body = await request.json()
+    documentId = body.documentId
+    console.log('Process request body:', body)
+    console.log('Document ID:', documentId)
 
     if (!documentId) {
+      console.log('No document ID provided')
       return NextResponse.json({ error: 'Document ID is required' }, { status: 400 })
     }
 
@@ -111,22 +140,68 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (docError || !document) {
+      console.log('Document not found:', docError)
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
+    console.log('Document found:', { id: document.id, filename: document.filename, processed: document.processed })
+
     if (document.processed) {
+      console.log('Document already processed, returning 400')
       return NextResponse.json({ error: 'Document already processed' }, { status: 400 })
     }
 
-    // Extract text from file
+    // Extract text based on document source type
     console.log('Processing document:', {
       id: documentId,
       filename: document.filename,
+      sourceType: document.source_type,
       filePath: document.file_path,
+      sourceUrl: document.source_url,
       contentType: document.content_type
     })
     
-    const text = await extractTextFromFile(document.file_path, document.content_type)
+    let text: string
+    let extractionMetadata: any = {}
+
+    if (document.source_type === 'url') {
+      // Extract text from URL
+      if (!document.source_url) {
+        throw new Error('URL document missing source_url')
+      }
+      const urlResult = await extractTextFromUrl(document.source_url)
+      text = urlResult.text
+      extractionMetadata = urlResult.metadata
+
+      // Update document with fetched metadata if not already set
+      const updateData: any = {
+        last_fetched_at: new Date().toISOString()
+      }
+      
+      if (!document.url_title && extractionMetadata.title) {
+        updateData.url_title = extractionMetadata.title
+      }
+      
+      if (!document.url_description && extractionMetadata.description) {
+        updateData.url_description = extractionMetadata.description
+      }
+
+      await supabaseAdmin
+        .from('legal_documents')
+        .update(updateData)
+        .eq('id', documentId)
+    } else {
+      // Extract text from file
+      if (!document.file_path) {
+        throw new Error('File document missing file_path')
+      }
+      text = await extractTextFromFile(document.file_path, document.content_type)
+      extractionMetadata = {
+        filename: document.filename,
+        contentType: document.content_type,
+        fileSize: document.file_size
+      }
+    }
 
     if (!text || text.trim().length === 0) {
       throw new Error('No text extracted from document')
@@ -159,7 +234,10 @@ export async function POST(request: NextRequest) {
           metadata: {
             filename: document.filename,
             version: document.version,
-            chunk_length: batch[j].length
+            chunk_length: batch[j].length,
+            source_type: document.source_type,
+            source_url: document.source_url || null,
+            ...extractionMetadata
           }
         })
       }
@@ -197,12 +275,15 @@ export async function POST(request: NextRequest) {
       chunksCreated: chunkRecords.length
     })
   } catch (error: any) {
-    console.error('Processing error:', error)
+    console.error('Processing error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
     
     // Update document with error status
-    if (request.body) {
+    if (documentId) {
       try {
-        const { documentId } = await request.json()
         await supabaseAdmin
           .from('legal_documents')
           .update({ 
@@ -210,8 +291,8 @@ export async function POST(request: NextRequest) {
             updated_at: new Date().toISOString()
           })
           .eq('id', documentId)
-      } catch {
-        // Ignore errors in error handling
+      } catch (updateError) {
+        console.error('Failed to update document status:', updateError)
       }
     }
 

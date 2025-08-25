@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Local Lawyer AI",
+    "appName": "Juriste IA | RCI",
     "loading": "Chargement...",
     "error": "Erreur",
     "success": "Succès",
@@ -330,7 +330,7 @@
     "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
   },
   "footer": {
-    "allRightsReserved": "© 2024 Local Lawyer AI. Tous droits réservés.",
+    "allRightsReserved": "© 2024 Juriste IA | RCI. Tous droits réservés.",
     "privacyPolicy": "Politique de confidentialité",
     "termsOfService": "Conditions d'utilisation",
     "contactUs": "Nous contacter"

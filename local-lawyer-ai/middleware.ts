@@ -60,27 +60,39 @@ async function handleAuthMiddleware(req: NextRequest) {
   )
 
   try {
+    // Protect admin routes with JWT token authentication
+    if (req.nextUrl.pathname.startsWith('/admin') && !req.nextUrl.pathname.startsWith('/admin/login')) {
+      const adminToken = req.cookies.get('admin-token')?.value
+      
+      if (!adminToken) {
+        return NextResponse.redirect(new URL('/admin/login', req.url))
+      }
+      
+      // Verify JWT token
+      try {
+        const { jwtVerify } = await import('jose')
+        const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET!)
+        const { payload } = await jwtVerify(adminToken, secret)
+        console.log('Admin token decoded:', payload)
+        
+        if (!payload || payload.role !== 'admin') {
+          console.log('Admin token invalid - no role or wrong role:', payload)
+          return NextResponse.redirect(new URL('/admin/login', req.url))
+        }
+      } catch (tokenError) {
+        // Invalid token, redirect to login
+        console.log('Admin token verification error:', tokenError)
+        return NextResponse.redirect(new URL('/admin/login', req.url))
+      }
+    }
+
+    // Handle regular user routes with Supabase auth
     const {
       data: { session },
     } = await supabase.auth.getSession()
 
-    // Protect admin routes
-    if (req.nextUrl.pathname.startsWith('/admin') && !req.nextUrl.pathname.startsWith('/admin/login')) {
-      if (!session) {
-        return NextResponse.redirect(new URL('/admin/login', req.url))
-      }
-      
-      // Check if user is admin (simplified for development)
-      const { data: admin } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('email', session.user.email)
-        .single()
-
-      if (!admin) {
-        return NextResponse.redirect(new URL('/', req.url))
-      }
-    }
+    // Add any user-specific auth logic here if needed
+    
   } catch (error) {
     // If there's an error, allow the request to continue
     console.log('Middleware error:', error)

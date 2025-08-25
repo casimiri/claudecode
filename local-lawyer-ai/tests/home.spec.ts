@@ -5,7 +5,7 @@ test.describe('Home Page', () => {
     await page.goto('/');
     
     // Check if the page loads without errors
-    await expect(page).toHaveTitle(/Local Lawyer AI|Legal AI Assistant/);
+    await expect(page).toHaveTitle(/Legal AI \| RCI|Juriste IA \| RCI|Legal AI Assistant/);
     
     // Check for main navigation elements
     await expect(page.locator('nav')).toBeVisible();

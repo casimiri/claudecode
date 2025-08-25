@@ -16,78 +16,58 @@ const getTokenPackages = (t: any) => [
   {
     id: 'starter',
     name: t('tokens.packages.starterPack'),
-    price: '$9',
-    tokens: 10000,
+    price: '$5',
+    tokens: 1000000,
     period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_STARTER,
     features: [
-      `10,000 ${t('tokens.ui.tokens')}`,
+      `1,000,000 ${t('tokens.ui.tokens')}`,
       t('tokens.features.neverExpires'),
       t('tokens.features.perfectForLightUsage'),
       t('tokens.features.emailSupport')
     ],
     popular: false,
     color: 'blue',
-    valuePerToken: 0.0009, // $0.0009 per token
+    valuePerToken: 0.000005, // $0.000005 per token
     savings: null
   },
   {
     id: 'popular',
     name: t('tokens.packages.popularPack'),
-    price: '$39',
-    tokens: 50000,
+    price: '$10',
+    tokens: 3000000,
     period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_POPULAR,
     features: [
-      `50,000 ${t('tokens.ui.tokens')}`,
+      `3,000,000 ${t('tokens.ui.tokens')}`,
       t('tokens.features.neverExpires'),
       t('tokens.features.mostPopularChoice'),
       t('tokens.features.prioritySupport'),
-      'Save 13% vs Starter'
+      'Save 33% vs Starter'
     ],
     popular: true,
     color: 'purple',
-    valuePerToken: 0.00078, // $0.00078 per token
-    savings: '13%'
+    valuePerToken: 0.0000033, // $0.0000033 per token
+    savings: '33%'
   },
   {
     id: 'power',
     name: t('tokens.packages.powerPack'),
-    price: '$99',
-    tokens: 150000,
+    price: '$20',
+    tokens: 7000000,
     period: t('tokens.ui.oneTime'),
     priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_POWER,
     features: [
-      `150,000 ${t('tokens.ui.tokens')}`,
+      `7,000,000 ${t('tokens.ui.tokens')}`,
       t('tokens.features.neverExpires'),
       t('tokens.features.greatForHeavyUsers'),
       t('tokens.features.prioritySupport'),
-      'Save 27% vs Starter'
+      'Save 43% vs Starter'
     ],
     popular: false,
     color: 'green',
-    valuePerToken: 0.00066, // $0.00066 per token
-    savings: '27%'
-  },
-  {
-    id: 'enterprise',
-    name: t('tokens.packages.enterprisePack'),
-    price: '$299',
-    tokens: 500000,
-    period: t('tokens.ui.oneTime'),
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_TOKENS_ENTERPRISE,
-    features: [
-      `500,000 ${t('tokens.ui.tokens')}`,
-      t('tokens.features.neverExpires'),
-      t('tokens.features.maximumValue'),
-      t('tokens.features.premiumSupport'),
-      'Save 33% vs Starter',
-      t('tokens.features.bulkDiscountPricing')
-    ],
-    popular: false,
-    color: 'yellow',
-    valuePerToken: 0.000598, // $0.000598 per token
-    savings: '33%'
+    valuePerToken: 0.0000029, // $0.0000029 per token
+    savings: '43%'
   }
 ]
 
@@ -525,7 +505,7 @@ export default function TokenPurchasePage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {getTokenPackages(t).map((tokenPackage) => (
             <TokenPackageCard
               key={tokenPackage.id}

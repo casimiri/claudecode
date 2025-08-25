@@ -185,7 +185,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center py-6">
             <Link href={`/${locale}`} className="flex items-center group">
               <Scale className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Local Lawyer AI</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">Legal AI | RCI</span>
             </Link>
             <div className="flex items-center space-x-4">
               {/* User Menu Dropdown */}

@@ -31,6 +31,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required. Please login as admin.' }, { status: 401 })
     }
     
+    const contentType = request.headers.get('content-type')
+    
+    // Handle URL-based documents (JSON payload)
+    if (contentType?.includes('application/json')) {
+      const { url, title, description } = await request.json()
+
+      if (!url || typeof url !== 'string') {
+        return NextResponse.json({ error: 'URL is required' }, { status: 400 })
+      }
+
+      // Validate URL format
+      try {
+        new URL(url)
+      } catch {
+        return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
+      }
+
+      // Save URL document metadata
+      const { data: document, error: dbError } = await supabaseAdmin
+        .from('legal_documents')
+        .insert({
+          filename: title || url,
+          source_url: url,
+          source_type: 'url',
+          url_title: title,
+          url_description: description,
+          content_type: 'text/html', // Default for URLs
+          version: 1,
+          is_current: true,
+          processed: false,
+          uploaded_by: admin.adminId,
+        })
+        .select()
+        .single()
+
+      if (dbError) {
+        console.error('Database error:', dbError)
+        return NextResponse.json({ error: 'Failed to save document metadata' }, { status: 500 })
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        documentId: document.id,
+        message: 'URL document added successfully' 
+      })
+    }
+    
+    // Handle file uploads (form data) - keeping for backward compatibility
     const formData = await request.formData()
     const file = formData.get('file') as File
 
@@ -64,23 +112,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
     }
 
-    // Mark previous documents as not current
-    await supabaseAdmin
-      .from('legal_documents')
-      .update({ is_current: false })
-      .eq('is_current', true)
-
-    // Get next version number
-    const { data: latestDoc } = await supabaseAdmin
-      .from('legal_documents')
-      .select('version')
-      .order('version', { ascending: false })
-      .limit(1)
-      .single()
-
-    const nextVersion = (latestDoc?.version || 0) + 1
-
-    // Save document metadata
+    // Save file document metadata
     const { data: document, error: dbError } = await supabaseAdmin
       .from('legal_documents')
       .insert({
@@ -88,7 +120,8 @@ export async function POST(request: NextRequest) {
         file_path: filePath,
         file_size: file.size,
         content_type: file.type,
-        version: nextVersion,
+        source_type: 'file', // Explicitly set for file uploads
+        version: 1,
         is_current: true,
         processed: false,
         uploaded_by: admin.adminId,

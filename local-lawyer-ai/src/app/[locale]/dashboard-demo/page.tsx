@@ -89,7 +89,7 @@ export default function DashboardDemoPage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Scale className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">Local Lawyer AI</span>
+              <span className="ml-2 text-xl font-bold text-gray-900">Legal AI | RCI</span>
               <span className="ml-4 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
                 DEMO
               </span>

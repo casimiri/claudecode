@@ -178,8 +178,7 @@ BEGIN
   FROM document_chunks dc
   JOIN legal_documents ld ON dc.document_id = ld.id
   WHERE 
-    ld.is_current = true 
-    AND ld.processed = true
+    ld.processed = true
     AND dc.embedding IS NOT NULL
     AND 1 - (dc.embedding <=> query_embedding) > match_threshold
   ORDER BY dc.embedding <=> query_embedding

@@ -19,7 +19,7 @@ export default async function HomePage({ params, searchParams }: Props) {
   
   const translations = {
     en: {
-      brand: { name: "Local Lawyer AI" },
+      brand: { name: "Legal AI | RCI" },
       nav: { signIn: "Sign In", getStarted: "Get Started" },
       hero: {
         title: "AI-Powered Legal Assistant",
@@ -27,7 +27,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         cta: "Start Your Legal Journey"
       },
       features: {
-        title: "Why Choose Local Lawyer AI?",
+        title: "Why Choose Legal AI | RCI?",
         subtitle: "Advanced AI technology meets legal expertise",
         instantAnswers: {
           title: "Instant Answers",
@@ -54,7 +54,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         monthlyDesc: "Best value for professionals",
         yearlyDesc: "Complete enterprise solution",
         badges: {
-          free: "Free",
+          starter: "Starter",
           mostPopular: "Most Popular",
           bestValue: "Best Value"
         },
@@ -78,7 +78,7 @@ export default async function HomePage({ params, searchParams }: Props) {
       },
       testimonials: {
         title: "Trusted by Legal Professionals",
-        subtitle: "See what our users say about Local Lawyer AI",
+        subtitle: "See what our users say about Legal AI | RCI",
         testimonial1: {
           text: "This AI assistant has transformed how I research legal questions. The accuracy and speed are incredible.",
           author: "Sarah Johnson",
@@ -96,7 +96,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         }
       },
       footer: { 
-        copyright: "© 2024 Local Lawyer AI. All rights reserved.",
+        copyright: "© 2024 Legal AI | RCI. All rights reserved.",
         description: "AI-powered legal assistance based on the most up-to-date local law documents.",
         links: {
           privacyPolicy: "Privacy Policy",
@@ -115,7 +115,7 @@ export default async function HomePage({ params, searchParams }: Props) {
       }
     },
     fr: {
-      brand: { name: "Local Lawyer AI" },
+      brand: { name: "Juriste IA | RCI" },
       nav: { signIn: "Se connecter", getStarted: "Commencer" },
       hero: {
         title: "Assistant Juridique IA",
@@ -123,7 +123,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         cta: "Commencez votre parcours juridique"
       },
       features: {
-        title: "Pourquoi choisir Local Lawyer AI ?",
+        title: "Pourquoi choisir Juriste IA | RCI ?",
         subtitle: "La technologie IA avancée rencontre l'expertise juridique",
         instantAnswers: {
           title: "Réponses instantanées",
@@ -150,7 +150,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         monthlyDesc: "Meilleur rapport qualité-prix pour les professionnels",
         yearlyDesc: "Solution entreprise complète",
         badges: {
-          free: "Gratuit",
+          starter: "Débutant",
           mostPopular: "Le plus populaire",
           bestValue: "Meilleure valeur"
         },
@@ -174,7 +174,7 @@ export default async function HomePage({ params, searchParams }: Props) {
       },
       testimonials: {
         title: "Approuvé par les professionnels du droit",
-        subtitle: "Découvrez ce que nos utilisateurs disent de Local Lawyer AI",
+        subtitle: "Découvrez ce que nos utilisateurs disent de Juriste IA | RCI",
         testimonial1: {
           text: "Cet assistant IA a transformé ma façon de rechercher des questions juridiques. La précision et la rapidité sont incroyables.",
           author: "Sarah Johnson",
@@ -192,7 +192,7 @@ export default async function HomePage({ params, searchParams }: Props) {
         }
       },
       footer: { 
-        copyright: "© 2024 Local Lawyer AI. Tous droits réservés.",
+        copyright: "© 2024 Juriste IA | RCI. Tous droits réservés.",
         description: "Assistance juridique alimentée par l'IA basée sur les documents de loi locaux les plus récents.",
         links: {
           privacyPolicy: "Politique de confidentialité",
@@ -337,20 +337,20 @@ export default async function HomePage({ params, searchParams }: Props) {
                 {t.pricing.subtitle}
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
               {/* Starter Pack */}
               <div className="bg-white rounded-2xl p-8 shadow-lg border border-green-200 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
                 <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 text-sm font-medium rounded-bl-lg">
-                  {t.pricing.badges.free}
+                  {t.pricing.badges.starter}
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.free}</h3>
-                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$0</div>
+                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$5</div>
                   <p className="text-sm text-gray-500 mb-6">{t.pricing.freeDesc}</p>
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                      <span>10K {t.pricing.features.tokensMonth}</span>
+                      <span>1M {t.pricing.features.tokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
@@ -370,12 +370,12 @@ export default async function HomePage({ params, searchParams }: Props) {
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.weekly}</h3>
-                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$9.99</div>
+                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$10</div>
                   <p className="text-sm text-gray-500 mb-6">{t.pricing.weeklyDesc}</p>
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-blue-500 mr-2" />
-                      <span>50K {t.pricing.features.tokens}</span>
+                      <span>3M {t.pricing.features.tokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-blue-500 mr-2" />
@@ -399,12 +399,12 @@ export default async function HomePage({ params, searchParams }: Props) {
                 </div>
                 <div className="text-center">
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.monthly}</h3>
-                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$29.99</div>
+                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$20</div>
                   <p className="text-sm text-gray-500 mb-6">{t.pricing.monthlyDesc}</p>
                   <ul className="space-y-3 mb-8 text-sm">
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
-                      <span>200K {t.pricing.features.tokens}</span>
+                      <span>7M {t.pricing.features.tokens}</span>
                     </li>
                     <li className="flex items-center">
                       <CheckCircle className="h-4 w-4 text-purple-500 mr-2" />
@@ -417,32 +417,6 @@ export default async function HomePage({ params, searchParams }: Props) {
                   </ul>
                   <Link href={`/${locale}/login`} className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
                     {t.pricing.buttons.choosePlan}
-                  </Link>
-                </div>
-              </div>
-
-              {/* Enterprise Plan */}
-              <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 relative overflow-hidden group hover:shadow-xl transition-all duration-300">
-                <div className="text-center">
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">{t.pricing.yearly}</h3>
-                  <div className="text-4xl font-extrabold text-gray-900 mb-2">$299.99</div>
-                  <p className="text-sm text-gray-500 mb-6">{t.pricing.yearlyDesc}</p>
-                  <ul className="space-y-3 mb-8 text-sm">
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{t.pricing.features.unlimitedTokens}</span>
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{t.pricing.features.enterpriseFeatures}</span>
-                    </li>
-                    <li className="flex items-center">
-                      <CheckCircle className="h-4 w-4 text-gray-500 mr-2" />
-                      <span>{t.pricing.features.support24x7}</span>
-                    </li>
-                  </ul>
-                  <Link href={`/${locale}/login`} className="w-full bg-gray-800 hover:bg-gray-900 text-white py-3 px-4 rounded-lg font-medium transition-colors inline-block">
-                    {t.pricing.buttons.contactSales}
                   </Link>
                 </div>
               </div>
