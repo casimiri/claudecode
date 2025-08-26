@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     
     // Handle URL-based documents (JSON payload)
     if (contentType?.includes('application/json')) {
-      const { url, title, description } = await request.json()
+      const { url, title, description, contentType: urlContentType } = await request.json()
 
       if (!url || typeof url !== 'string') {
         return NextResponse.json({ error: 'URL is required' }, { status: 400 })
@@ -48,6 +48,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
       }
 
+      // Determine content type based on URL validation or default to HTML
+      let documentContentType = 'text/html'
+      if (urlContentType?.includes('application/pdf')) {
+        documentContentType = 'application/pdf'
+      } else if (urlContentType?.includes('text/plain')) {
+        documentContentType = 'text/plain'
+      }
+
       // Save URL document metadata
       const { data: document, error: dbError } = await supabaseAdmin
         .from('legal_documents')
@@ -57,7 +65,7 @@ export async function POST(request: NextRequest) {
           source_type: 'url',
           url_title: title,
           url_description: description,
-          content_type: 'text/html', // Default for URLs
+          content_type: documentContentType,
           version: 1,
           is_current: true,
           processed: false,

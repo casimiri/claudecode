@@ -6,6 +6,7 @@ export interface UrlProcessingResult {
   description: string
   contentType: string
   url: string
+  buffer?: Buffer // For binary files like PDFs
 }
 
 export interface UrlMetadata {
@@ -78,6 +79,42 @@ function extractTextFromHtml(html: string): { content: string; metadata: UrlMeta
 }
 
 /**
+ * Process PDF buffer and extract text
+ */
+async function processPdfBuffer(buffer: Buffer, url: string): Promise<UrlProcessingResult> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require('pdf-parse')
+    const pdfData = await pdfParse(buffer)
+    
+    if (!pdfData.text || pdfData.text.trim().length === 0) {
+      throw new Error('No text content found in PDF')
+    }
+    
+    // Extract title from URL filename or use PDF metadata
+    const urlPath = new URL(url).pathname
+    const filename = urlPath.split('/').pop() || 'document.pdf'
+    const title = pdfData.info?.Title || filename.replace(/\.[^/.]+$/, '') || 'PDF Document'
+    
+    // Create description from first few sentences
+    const sentences = pdfData.text.split(/[.!?]+/).filter((s: string) => s.trim().length > 0)
+    const description = sentences.slice(0, 2).join('. ').substring(0, 200) + 
+                      (sentences.length > 2 ? '...' : '')
+    
+    return {
+      content: pdfData.text,
+      title: title.substring(0, 255),
+      description: description || 'PDF document',
+      contentType: 'application/pdf',
+      url,
+      buffer
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to process PDF: ${error.message}`)
+  }
+}
+
+/**
  * Fetch and process content from a URL
  */
 export async function fetchAndProcessUrl(url: string): Promise<UrlProcessingResult> {
@@ -93,14 +130,14 @@ export async function fetchAndProcessUrl(url: string): Promise<UrlProcessingResu
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; LocalLawyer-AI/1.0)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,text/plain;q=0.8,*/*;q=0.5',
+        'Accept': 'text/html,application/xhtml+xml,application/xml,application/pdf;q=0.9,text/plain;q=0.8,*/*;q=0.5',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       },
       // Add timeout
-      signal: AbortSignal.timeout(30000) // 30 seconds
+      signal: AbortSignal.timeout(60000) // 60 seconds for larger PDFs
     })
     
     if (!response.ok) {
@@ -108,6 +145,19 @@ export async function fetchAndProcessUrl(url: string): Promise<UrlProcessingResu
     }
     
     const contentType = response.headers.get('content-type') || ''
+    
+    // Handle PDF content
+    if (contentType.includes('application/pdf')) {
+      const buffer = Buffer.from(await response.arrayBuffer())
+      
+      if (buffer.length === 0) {
+        throw new Error('Empty PDF response from URL')
+      }
+      
+      return await processPdfBuffer(buffer, url)
+    }
+    
+    // Handle text content (existing logic)
     const text = await response.text()
     
     if (!text.trim()) {
@@ -178,7 +228,7 @@ export async function validateUrl(url: string): Promise<{ valid: boolean; error?
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; LocalLawyer-AI/1.0)'
       },
-      signal: AbortSignal.timeout(10000) // 10 seconds for validation
+      signal: AbortSignal.timeout(15000) // 15 seconds for validation
     })
     
     if (!headResponse.ok) {
@@ -189,10 +239,11 @@ export async function validateUrl(url: string): Promise<{ valid: boolean; error?
     
     if (!contentType.includes('text/html') && 
         !contentType.includes('application/xhtml') && 
-        !contentType.includes('text/plain')) {
+        !contentType.includes('text/plain') &&
+        !contentType.includes('application/pdf')) {
       return { 
         valid: false, 
-        error: `Unsupported content type: ${contentType}. Only HTML and plain text are supported.` 
+        error: `Unsupported content type: ${contentType}. Only HTML, plain text, and PDF files are supported.` 
       }
     }
     

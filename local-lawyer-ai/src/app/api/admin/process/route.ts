@@ -95,7 +95,7 @@ async function extractTextFromFile(filePath: string, contentType: string): Promi
   }
 }
 
-async function extractTextFromUrl(url: string): Promise<{ text: string; metadata: any }> {
+async function extractTextFromUrl(url: string): Promise<{ text: string; metadata: any; buffer?: Buffer }> {
   console.log('Fetching content from URL:', url)
   
   try {
@@ -109,7 +109,8 @@ async function extractTextFromUrl(url: string): Promise<{ text: string; metadata
         contentType: result.contentType,
         url: result.url,
         fetchedAt: new Date().toISOString()
-      }
+      },
+      buffer: result.buffer
     }
   } catch (error: any) {
     console.error('URL processing failed:', error.message)
@@ -169,9 +170,17 @@ export async function POST(request: NextRequest) {
       if (!document.source_url) {
         throw new Error('URL document missing source_url')
       }
+      
       const urlResult = await extractTextFromUrl(document.source_url)
       text = urlResult.text
       extractionMetadata = urlResult.metadata
+
+      // For PDF URLs, we may have additional processing needs
+      if (document.content_type === 'application/pdf' && urlResult.buffer) {
+        // PDF content was already processed in the URL processor
+        // The text extraction is complete
+        console.log('PDF from URL processed successfully')
+      }
 
       // Update document with fetched metadata if not already set
       const updateData: any = {

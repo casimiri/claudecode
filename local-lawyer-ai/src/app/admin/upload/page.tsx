@@ -10,7 +10,7 @@ export default function AdminUploadPage() {
   const [processing, setProcessing] = useState(false)
   const [validatingUrl, setValidatingUrl] = useState(false)
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string } | null>(null)
-  const [urlPreview, setUrlPreview] = useState<{ title: string; description: string } | null>(null)
+  const [urlPreview, setUrlPreview] = useState<{ title: string; description: string; contentType?: string } | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const handleUrlValidation = async (url: string) => {
@@ -34,7 +34,8 @@ export default function AdminUploadPage() {
       if (response.ok && data.valid) {
         setUrlPreview({
           title: data.preview?.title || 'URL Content',
-          description: data.preview?.description || 'Content available for processing'
+          description: data.preview?.description || 'Content available for processing',
+          contentType: data.contentType
         })
       } else {
         setUrlPreview(null)
@@ -73,7 +74,8 @@ export default function AdminUploadPage() {
         body: JSON.stringify({ 
           url: url.trim(),
           title: urlPreview?.title || '',
-          description: urlPreview?.description || ''
+          description: urlPreview?.description || '',
+          contentType: urlPreview?.contentType
         }),
       })
 
@@ -167,7 +169,7 @@ export default function AdminUploadPage() {
             <LinkIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900">Add Document from URL</h2>
             <p className="text-gray-600 mt-2">
-              Enter a URL containing legal content (HTML pages or plain text documents)
+              Enter a URL containing legal content (HTML pages, plain text documents, or PDF files)
             </p>
           </div>
 
@@ -201,7 +203,7 @@ export default function AdminUploadPage() {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Supported: HTML pages and plain text documents over HTTP/HTTPS
+                Supported: HTML pages, plain text documents, and PDF files over HTTP/HTTPS
               </p>
             </div>
 
@@ -270,9 +272,9 @@ export default function AdminUploadPage() {
             <ul className="text-sm text-gray-600 space-y-1">
               <li>• Ensure the URL contains current and accurate legal information</li>
               <li>• The system will automatically fetch, process and index the content for AI queries</li>
-              <li>• Only HTML pages and plain text documents are supported</li>
+              <li>• Supported formats: HTML pages, plain text documents, and PDF files</li>
               <li>• URLs must be accessible over HTTP/HTTPS without authentication</li>
-              <li>• Processing may take a few minutes for large web pages</li>
+              <li>• Processing may take a few minutes for large documents or web pages</li>
             </ul>
           </div>
         </div>

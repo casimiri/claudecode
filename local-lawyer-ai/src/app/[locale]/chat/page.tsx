@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
-import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Menu, X, CreditCard, LogOut, ChevronDown, Settings, User as UserIcon } from 'lucide-react'
+import { Send, Scale, ArrowLeft, Loader2, Zap, AlertTriangle, MessageSquare, Plus, Wallet, Menu, X, CreditCard, LogOut, ChevronDown, Settings, User as UserIcon, ExternalLink, FileText } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { getCurrentUser, signOut } from '../../../../lib/auth'
@@ -13,6 +13,15 @@ import LanguageSwitcher from '../../../components/LanguageSwitcher'
 import ThemeToggle from '../../../components/ThemeToggle'
 import { useTheme } from '../../../contexts/ThemeContext'
 
+interface Source {
+  filename: string
+  source_type: 'file' | 'url'
+  source_url?: string
+  url_title?: string
+  similarity: number
+  content_preview: string
+}
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
@@ -20,6 +29,7 @@ interface Message {
   timestamp: Date
   tokens_used?: number
   sources_count?: number
+  sources?: Source[]
 }
 
 interface Conversation {
@@ -338,7 +348,8 @@ export default function ChatPage() {
         content: data.response,
         timestamp: new Date(),
         tokens_used: data.tokensUsed,
-        sources_count: data.sources
+        sources_count: data.sourcesCount || data.sources?.length || 0,
+        sources: data.sources || []
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -739,6 +750,57 @@ export default function ChatPage() {
                     >
                       {message.content}
                     </ReactMarkdown>
+                    
+                    {/* Sources section for assistant messages */}
+                    {message.sources && message.sources.length > 0 && (
+                      <div className={`mt-4 pt-3 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+                        <p className={`text-xs font-medium mb-2 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Sources ({message.sources.length})
+                        </p>
+                        <div className="space-y-2">
+                          {message.sources.map((source, index) => (
+                            <div
+                              key={index}
+                              className={`flex items-start space-x-2 p-2 rounded text-xs ${
+                                darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'
+                              } border`}
+                            >
+                              {source.source_type === 'url' ? (
+                                <ExternalLink className={`w-3 h-3 mt-0.5 flex-shrink-0 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                              ) : (
+                                <FileText className={`w-3 h-3 mt-0.5 flex-shrink-0 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    {source.source_type === 'url' && source.source_url ? (
+                                      <a
+                                        href={source.source_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`font-medium hover:underline ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}
+                                      >
+                                        {source.url_title || source.filename}
+                                      </a>
+                                    ) : (
+                                      <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                                        {source.filename}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`ml-2 text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'} flex-shrink-0`}>
+                                    {Math.round(source.similarity * 100)}% match
+                                  </span>
+                                </div>
+                                <p className={`text-xs mt-1 truncate ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                                  {source.content_preview}...
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">

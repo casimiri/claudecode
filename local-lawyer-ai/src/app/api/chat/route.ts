@@ -115,6 +115,34 @@ export async function POST(request: NextRequest) {
     const context = relevantChunks?.map((chunk: any) => chunk.content) || []
     console.log(`CHAT API: Found ${context.length} relevant chunks.`);
 
+    // Extract unique sources for attribution
+    const sources = relevantChunks?.map((chunk: any) => {
+      // Try to get source info from the new fields (if migration applied)
+      // Otherwise fall back to metadata (for backwards compatibility)
+      const metadata = chunk.metadata || {}
+      
+      return {
+        filename: chunk.filename || metadata.filename || 'Unknown Document',
+        source_type: chunk.source_type || metadata.source_type || 'file',
+        source_url: chunk.source_url || metadata.source_url,
+        url_title: chunk.url_title || metadata.title,
+        similarity: chunk.similarity,
+        content_preview: chunk.content.substring(0, 100)
+      }
+    }) || []
+
+    // Remove duplicate sources based on document_id or source_url
+    const uniqueSources = sources.reduce((acc: any[], current: any) => {
+      const isDuplicate = acc.some(item => 
+        item.source_url === current.source_url || 
+        (item.filename === current.filename && item.source_type === current.source_type)
+      )
+      if (!isDuplicate) {
+        acc.push(current)
+      }
+      return acc
+    }, [])
+
     console.log(`CHAT API: Generating chat response from OpenAI.`);
     const chatResponse = await generateChatResponse(
       message, 
@@ -147,10 +175,7 @@ export async function POST(request: NextRequest) {
           prompt_tokens: chatResponse.usage?.prompt_tokens || 0,
           completion_tokens: chatResponse.usage?.completion_tokens || 0,
           total_tokens: chatResponse.usage?.total_tokens || 0,
-          sources: relevantChunks?.map((chunk: any) => ({
-            similarity: chunk.similarity,
-            content_preview: chunk.content.substring(0, 100)
-          })) || []
+          sources: uniqueSources
         }
       )
       console.log(`CHAT API: Chat exchange saved successfully.`);
@@ -181,7 +206,8 @@ export async function POST(request: NextRequest) {
     console.log(`CHAT API: Returning response for user ${user.id}.`);
     return NextResponse.json({ 
       response: chatResponse.content,
-      sources: relevantChunks?.length || 0,
+      sources: uniqueSources,
+      sourcesCount: uniqueSources.length,
       tokensUsed: actualTokensUsed,
       tokensRemaining: tokenConsumption.tokensRemaining,
       usage: chatResponse.usage,
